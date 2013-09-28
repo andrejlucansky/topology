@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG Swarm</title>
+<body>
+	<div id="1" class="svg"></div><!--
+	<div id="2" class="svg"></div>
+	<div id="3" class="svg"></div>
+	<div id="4" class="svg"></div>
+	<div id="5" class="svg"></div>
+	<div id="6" class="svg"></div>
+	<div id="7" class="svg"></div>
+	<div id="8" class="svg"></div>
+	<div id="9" class="svg"></div>
+	<div id="10" class="svg"></div>-->
+</body>
+<style>
+	.svg {
+		position: relative;
+		float: left;
+		fill: steelblue;
+		stroke: #666;
+		stroke-width: 1.5px;
+	}
+
+</style>
+<div id="fps">
+	FPS: <span>?</span>
+</div>
+<script src="http://d3js.org/d3.v2.min.js?2.9.1"></script>
+<script>
+	var data = d3.range(100).map(function() {
+		return {
+			xloc : 0,
+			yloc : 0,
+			xvel : 0,
+			yvel : 0
+		};
+	});
+
+/*    //zaujimave mapovanie funkcie pre pole data
+    for(var i = 0; i < data.length; i++){
+        console.log(data[i].xloc + " " + data[i].yloc + " " + data[i]);
+    }
+
+    for (d in data){
+        console.log(d);
+    }*/
+
+	var width = 350, height = 500;
+
+	var x = d3.scale.linear().domain([-5, 5]).range([0, width]);
+
+	var y = d3.scale.linear().domain([-5, 5]).range([0, height]);
+
+	var time0 = Date.now(), time1;
+	
+	var averagefps = [];
+	
+	var fps = d3.select("#fps span");
+
+	var svg = d3.selectAll(".svg").append("svg").attr("width", width).attr("height", height);
+
+	var circle = svg.selectAll("circle").data(data).enter().append("circle").attr("cx", function(d) {
+		return d.x;
+	}).attr("cy", function(d) {
+		return d.y;
+	}).attr("r", 1);
+
+	circle.on("click", function() {
+		d3.select(this).style("fill", function() {
+			return "hsl(" + Math.random() * 360 + ",100%,50%)";
+		}).style("stroke", "red");
+	});
+/*
+	circle.call(d3.behavior.drag().origin(function(d) {
+		return d;
+	}).on("drag", function(d) {
+		d.x = d3.event.x, d.y = d3.event.y;
+		console.log(d);
+		console.log(d3.event);
+		d3.select(this).attr("cx", d.x).attr("cy", d.y);
+
+	}));
+	*/
+	brown();
+	//coloredBrown();
+	//brownSnapshot(100);
+	//coloredBrownSnapshot(100);
+
+	function brown() {
+		d3.timer(function() {
+			data.forEach(function(d) {
+				d.xloc += d.xvel;
+				d.yloc += d.yvel;
+				d.xvel += 0.04 * (Math.random() - .5) - 0.05 * d.xvel - 0.0005 * d.xloc;
+				d.yvel += 0.04 * (Math.random() - .5) - 0.05 * d.yvel - 0.0005 * d.yloc;
+			});
+
+			circle.attr("transform", function(d) {
+				return "translate(" + x(d.xloc) + "," + y(d.yloc) + ")";
+			}).attr("r", function(d) {
+				return Math.min(1 + 1000 * Math.abs(d.xvel * d.yvel), 10);
+			});
+
+			time1 = Date.now();
+			rate = Math.round(1000 / (time1 - time0));
+			averagefps.push(rate);
+			
+			var sum = 0;
+			for(var i in averagefps){
+				sum = sum + averagefps[i];
+			}
+
+			fps.text(Math.floor(sum/averagefps.length));
+			time0 = time1;
+		});
+	}
+
+	function coloredBrown() {
+		d3.timer(function() {
+			data.forEach(function(d) {
+				d.xloc += d.xvel;
+				d.yloc += d.yvel;
+				d.xvel += 0.04 * (Math.random() - .5) - 0.05 * d.xvel - 0.0005 * d.xloc;
+				d.yvel += 0.04 * (Math.random() - .5) - 0.05 * d.yvel - 0.0005 * d.yloc;
+			});
+
+			circle.attr("transform", function(d) {
+				return "translate(" + x(d.xloc) + "," + y(d.yloc) + ")";
+			}).attr("r", function(d) {
+				return Math.min(1 + 1000 * Math.abs(d.xvel * d.yvel), 10);
+			});
+
+			time1 = Date.now();
+			rate = Math.round(1000 / (time1 - time0));
+			averagefps.push(rate);
+			
+			var sum = 0;
+			for(var i in averagefps){
+				sum = sum + averagefps[i];
+			}
+
+			fps.text(Math.floor(sum/averagefps.length));
+			time0 = time1;
+
+			svg.select("circle:nth-child(" + Math.floor(Math.random() * 500) + ")").style("fill", function() {
+				return "hsl(" + Math.random() * 360 + ",100%,50%)";
+			}).style("stroke", "red");
+		});
+	}
+
+	function brownSnapshot(n) {
+		for (var i = 0; i < n; i++) {
+			data.forEach(function(d) {
+				d.xloc += d.xvel;
+				d.yloc += d.yvel;
+				d.xvel += 0.04 * (Math.random() - .5) - 0.05 * d.xvel - 0.0005 * d.xloc;
+				d.yvel += 0.04 * (Math.random() - .5) - 0.05 * d.yvel - 0.0005 * d.yloc;
+			});
+
+			circle.attr("transform", function(d) {
+				return "translate(" + x(d.xloc) + "," + y(d.yloc) + ")";
+			}).attr("r", function(d) {
+				return Math.min(1 + 1000 * Math.abs(d.xvel * d.yvel), 10);
+			});
+
+			time1 = Date.now();
+			fps.text(Math.round(1000 / (time1 - time0)));
+			time0 = time1;
+
+			i++;
+		}
+	}
+
+	function coloredBrownSnapshot(n) {
+		for (var i = 0; i < n; i++) {
+			data.forEach(function(d) {
+				d.xloc += d.xvel;
+				d.yloc += d.yvel;
+				d.xvel += 0.04 * (Math.random() - .5) - 0.05 * d.xvel - 0.0005 * d.xloc;
+				d.yvel += 0.04 * (Math.random() - .5) - 0.05 * d.yvel - 0.0005 * d.yloc;
+			});
+
+			circle.attr("transform", function(d) {
+				return "translate(" + x(d.xloc) + "," + y(d.yloc) + ")";
+			}).attr("r", function(d) {
+				return Math.min(1 + 1000 * Math.abs(d.xvel * d.yvel), 10);
+			});
+
+			time1 = Date.now();
+			fps.text(Math.round(1000 / (time1 - time0)));
+			time0 = time1;
+
+			svg.select("circle:nth-child(" + Math.floor(Math.random() * 500) + ")").style("fill", function() {
+				return "hsl(" + Math.random() * 360 + ",100%,50%)";
+			}).style("stroke", "red");
+
+			i++;
+		}
+	}
+</script>

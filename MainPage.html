@@ -1,9 +1,49 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title></title>
+    <title>Topology plugin prototype</title>
+    <script>
+        function loadScript(url, callback)
+        {
+            var head = document.getElementsByTagName("head")[0];
+            var script = document.createElement("script");
+            script.src = url;
+
+            // Attach handlers for all browsers
+            var done = false;
+            script.onload = script.onreadystatechange = function()
+            {
+                if( !done && ( !this.readyState
+                        || this.readyState == "loaded"
+                        || this.readyState == "complete") )
+                {
+                    done = true;
+
+                    // Continue your code
+                    callback();
+
+                    // Handle memory leak in IE
+                    script.onload = script.onreadystatechange = null;
+                    head.removeChild( script );
+                }
+            };
+
+            head.appendChild(script);
+        }
+
+
+        // Usage:
+        // This code loads jQuery and executes some code when jQuery is loaded
+        loadScript("http://d3js.org/d3.v3.min.js", function()
+        {
+            var head = document.getElementsByTagName("head")[0];
+            var script = document.createElement("script");
+            script.src = "TopologyGraph.js";
+            head.appendChild(script);
+        });
+    </script>
+
 </head>
 <body>
-Test
 </body>
 </html>
