@@ -18,7 +18,7 @@ var nodes = [
 
 var nodes = d3.range(13).map(function(){
     return {};
-})
+});
 
 var links = [
     {"source": 0, "target": 1},
@@ -85,6 +85,7 @@ var svg = d3.select("body").append("svg")
 
 var force = d3.layout.force().nodes(nodes).links(links).size([width,height])
     .on("tick", tick)
+    .on("end", end)
     .linkDistance(50)
     .charge(-500)
     .start();
@@ -94,7 +95,6 @@ var drag = force.drag()
     //.on("dragend", function(d){d.fixed = false; d3.select(this).classed("fixed", false);})
 
 function dragstart(d) {
-
     d.fixed = true;
     d3.select(this).classed("fixed", true);
 }
@@ -102,12 +102,33 @@ function dragstart(d) {
 var link = svg.selectAll(".link").data(links).enter().append("path")
     .attr("class", "link");
 
-var node = svg.selectAll(".node").data(nodes).enter().append("circle")
-    .attr("class", "node")
+/*
+//Nodes represented by circles
+var node = svg.selectAll(".node").data(nodes).enter().append("circle");
+    node.attr("class", "node")
     .attr("r", 12)
     .attr("cx", function(d) { return d.x; })
     .attr("cy", function(d) { return d.y; })
     .call(drag);
+*/
+
+//Nodes represented by images
+var node = svg.selectAll(".node").data(nodes).enter().append("g")
+    .attr("class", "node")
+    .call(drag)
+    .append("image")
+    .attr("xlink:href", "https://github.com/favicon.ico")
+    .attr("x", -8)
+    .attr("y", -8)
+    .attr("width", 16)
+    .attr("height", 16);
+
+function end(){
+    for (var i = 0; i < nodes.length; i++){
+        nodes[i].fixed = true;
+}
+    d3.selectAll(".node").classed("fixed", true);
+}
 
 function tick() {
     link.attr("d", function(d) {
@@ -117,8 +138,10 @@ function tick() {
         return "M" + d.source.x + "," + d.source.y + "A" + dr + "," + dr + " 0 0,1 " + d.target.x + "," + d.target.y;
     });
 
-    node.attr("cx", function(d) { return d.x; })
-        .attr("cy", function(d) { return d.y; });
+/*    node.attr("cx", function(d) { return d.x; })
+        .attr("cy", function(d) { return d.y; });*/
+
+    node.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
 
 /*   // this part of code is working for straight lines between nodes - obsolete
      link.attr("x1", function(d) { return d.source.x; })

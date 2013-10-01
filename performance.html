@@ -37,13 +37,15 @@
 		};
 	});
 
-/*    //zaujimave mapovanie funkcie pre pole data
-    for(var i = 0; i < data.length; i++){
-        console.log(data[i].xloc + " " + data[i].yloc + " " + data[i]);
-    }
+    //zaujimave mapovanie funkcie pre pole data
+/*    for(var i = 0; i < data.length; i++){
+        console.log(data[i]);
+        console.log(data[i].xloc + " " + data[i].yloc);
+    }*/
 
-    for (d in data){
-        console.log(d);
+/*    for (d in data){
+        console.log(data[d]);
+        console.log(data[d].xloc + " " + data[d].yloc);
     }*/
 
 	var width = 350, height = 500;
@@ -107,9 +109,9 @@
 			averagefps.push(rate);
 			
 			var sum = 0;
-			for(var i in averagefps){
-				sum = sum + averagefps[i];
-			}
+            for(var i = 0; i < averagefps.length; i++){
+                sum = sum + averagefps[i];
+            }
 
 			fps.text(Math.floor(sum/averagefps.length));
 			time0 = time1;
@@ -136,9 +138,9 @@
 			averagefps.push(rate);
 			
 			var sum = 0;
-			for(var i in averagefps){
-				sum = sum + averagefps[i];
-			}
+            for(var i = 0; i < averagefps.length; i++){
+                sum = sum + averagefps[i];
+            }
 
 			fps.text(Math.floor(sum/averagefps.length));
 			time0 = time1;
