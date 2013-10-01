@@ -38,9 +38,9 @@
         {
             var head = document.getElementsByTagName("head")[0];
             var script = document.createElement("script");
-            script.src = "TopologyGraph.js";
-            //script.src = "Circles.js";
-            //script.src = "Table.js";
+            script.src = "../scripts/topology.js";
+            //script.src = "circles.js";
+            //script.src = "table.js";
             head.appendChild(script);
         });
     </script>
@@ -51,16 +51,23 @@
             stroke-width: 1.5px;
         }
 
-        .node {
+        .node circle {
             cursor: move;
             fill: #ccc;
             stroke: #000;
             stroke-width: 1.5px;
         }
 
-        .node.fixed {
+        .node .fixed  circle{
             fill: #8aff2d;
         }
+
+        .node text{
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 10px;
+            pointer-events: none;
+        }
+
     </style>
 </head>
 <body>
