@@ -5,6 +5,16 @@ d3.json("../data/topology.json", function(error, json){
     var width = 800;
     var height = 800;
 
+    //generate unique id for each link
+    nodes.forEach(function(n){
+        n.id = generateId();
+    });
+
+    //generate unique id for each link
+    links.forEach(function(l){
+        l.id = generateId();
+    });
+
     var svg = d3.select("body").append("svg")
         .attr("width", width)
         .attr("height", height);
@@ -20,8 +30,9 @@ d3.json("../data/topology.json", function(error, json){
         .on("dragstart", function (d) {
             d.fixed = true;
             d3.select(this).classed("fixed", true);
-        })
-        .on("dragend", function (d, i) {
+        });
+
+    var lineBreakNodeDblClickEvent = function(d, i){
             //get type of dragged node
             var nodeType = d.type;
             //if it is invisible node, get links where the node is parent(2)
@@ -37,19 +48,21 @@ d3.json("../data/topology.json", function(error, json){
                     var segment1 = [d, nodeLinks[0].target];
                     var segment2 = [d, nodeLinks[1].target];
                     var areParallel = computeParallelism(segment1, segment2);
-                                    console.log("computing");
-                    if(areParallel){
+                    console.log("computing");
+                    //if(areParallel){
                         //add links from source to target
                         links.push({
                             "source" : nodeLinks[0].target,
                             "target" : nodeLinks[1].target,
-                            "type" : "upload"
+                            "type" : "upload",
+                            "id" : generateId()
                         });
 
                         links.push({
                             "source" : nodeLinks[1].target,
                             "target" : nodeLinks[0].target,
-                            "type" : "upload"
+                            "type" : "upload",
+                            "id" : generateId()
                         });
 
                         //remove links
@@ -63,74 +76,61 @@ d3.json("../data/topology.json", function(error, json){
                         for(var i = 0; i < linksForDelete.length; i++){
                             links.splice(links.indexOf(linksForDelete[i]),1);
                         }
-                        link.data(links).exit().remove();
+                        link.data(links, function(d){return d.id;}).exit().remove();
 
                         //remove node
                         nodes.splice(nodes.indexOf(d), 1);
-                        node.data(nodes).exit().remove();
-                    }
+                        node.data(nodes, function(d){return d.id;}).exit().remove();
+                    restart();
+                    //}
                 }
             }
+        };
+
+    var lineMouseDownEvent = function(d, i){
+        //create drag node
+        var coordinates = [0, 0];
+        coordinates = d3.mouse(this);
+        var x = coordinates[0];
+        var y = coordinates[1];
+
+        var n = {
+            "type" : "invisible",
+            "image" : undefined,
+            "x" : x,
+            "y" : y,
+            "fixed" : true,
+            "id" : generateId()
+        }
+        nodes.push(n);
+        links.push({"source" : d.source, "target" : n, "type" : "upload", "id" : generateId()});
+        links.push({"source" : n, "target" : d.target, "type" : "upload", "id" : generateId()});
+        links.push({"source" : d.target, "target" : n, "type" : "upload", "id" : generateId()});
+        links.push({"source" : n, "target" : d.source, "type" : "upload", "id" : generateId()});
+
+        links.forEach(function(l){
+            if(l.source == d.target && l.target == d.source)
+                links.splice(links.indexOf(l),1);
         });
+        links.splice(links.indexOf(d),1);
+        link.data(links, function(d){return d.id;}).exit().remove();   //nefunguje, treba zacat indexovat elementy klucom
 
-    function restart() {
-        link = link.data(links);
-
-        link.enter().insert("line", ".node")
-            .attr("class", "link");
-
-        node = node.data(nodes);
-
-        force.start();
-
-        node.enter()
-            .insert("circle", ".cursor")
-            .attr("class", "node")
-            .attr("r", 5)
-            .attr("id", function(d){return d.index;})
-            .call(nodeDrag);
-    }
+        restart();
+        //simulate(document.getElementById(n.index), "mousedown", {pointerX: d3.mouse(this)[0], pointerY: d3.mouse(this)[1]});
+    };
 
     //straight lines
-    var link = svg.selectAll(".link").data(links).enter().append("line")
+    var link = svg.selectAll(".link").data(links, function(d){return d.id;}).enter().append("line")
         .attr("class", "link")
-        .attr("sourceid", function(d){ return d.source.index})
-        .attr("targetid", function(d){ return d.target.index})
-        .on("mousedown", function(d){
-            //create drag node
-            var coordinates = [0, 0];
-            coordinates = d3.mouse(this);
-            var x = coordinates[0];
-            var y = coordinates[1];
-
-            var n = {
-                "type" : "invisible",
-                "image" : undefined,
-                "x" : x,
-                "y" : y,
-                "fixed" : true
-            }
-            nodes.push(n);
-            links.push({"source" : d.source, "target" : n, "type" : "upload"});
-            links.push({"source" : n, "target" : d.target, "type" : "upload"});
-            links.push({"source" : d.target, "target" : n, "type" : "upload"});
-            links.push({"source" : n, "target" : d.source, "type" : "upload"});
-
-            links.forEach(function(l){
-                if(l.source == d.target && l.target == d.source)
-                    links.splice(links.indexOf(l),1);
-            });
-            links.splice(links.indexOf(d),1);
-            link.data(links).exit().remove();   //nefunguje, treba zacat indexovat elementy klucom
-
-            restart();
-            //simulate(document.getElementById(n.index), "mousedown", {pointerX: d3.mouse(this)[0], pointerY: d3.mouse(this)[1]});
-        });
+        .attr("sourceid", function(d){ return d.source.index;})
+        .attr("targetid", function(d){ return d.target.index;})
+        .attr("id", function(d) {return d.id;})
+        .on("mousedown", lineMouseDownEvent);
 
 //Nodes represented by images
-    var node = svg.selectAll(".node").data(nodes).enter().append("g")
+    var node = svg.selectAll(".node").data(nodes, function(d){return d.id;}).enter().append("g")
         .attr("class", "node")
-        .attr("id", function(d){return d.index})
+        .attr("id", function(d){return d.id;})
         .call(nodeDrag);
 
     node.append("image")
@@ -145,6 +145,7 @@ d3.json("../data/topology.json", function(error, json){
         .attr("dy", ".35em")
         .attr("class", "label")
         .text(function(d) { return d.type });
+
 
     function tick() {
         node.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
@@ -197,6 +198,30 @@ d3.json("../data/topology.json", function(error, json){
 
     }
 
+    function restart() {
+        link = link.data(links, function(d){return d.id;});
+
+        link.enter().insert("line", ".node")
+            .attr("class", "link")
+            .attr("sourceid", function(d){ return d.source.index;})
+            .attr("targetid", function(d){ return d.target.index;})
+            .attr("id", function(d){ return d.id;})
+            .on("mousedown", lineMouseDownEvent);
+
+        node = node.data(nodes, function(d){return d.id;});
+
+        force.start();
+        console.log("restart");
+        node.enter()
+            .insert("circle", ".cursor")
+            .attr("class", "node")
+            .attr("r", 5)
+            .attr("id", function(d){return d.index;})
+            .call(nodeDrag)
+            .on("dblclick", lineBreakNodeDblClickEvent);
+        console.log("restart2");
+    }
+
     function end(){
         for (var i = 0; i < nodes.length; i++){
             nodes[i].fixed = true;
@@ -221,12 +246,6 @@ d3.json("../data/topology.json", function(error, json){
             return true;
         else
             return false;
-    }
-
-    function roundNumber(number, digits) {
-        var multiple = Math.pow(10, digits);
-        var rndedNum = Math.round(number * multiple) / multiple;
-        return rndedNum;
     }
 
     function computeCoordinates(source_x, source_y, target_x, target_y){
@@ -288,6 +307,19 @@ d3.json("../data/topology.json", function(error, json){
         else
             var new_c2 = -(Math.sqrt(Math.pow((c2-a2),2) * ratio)) + a2;
         return [new_c1,new_c2];
+    }
+
+    function generateId(){
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+            return v.toString(16);
+        });
+    }
+
+    function roundNumber(number, digits) {
+        var multiple = Math.pow(10, digits);
+        var rndedNum = Math.round(number * multiple) / multiple;
+        return rndedNum;
     }
 
     function simulate(element, eventName)
