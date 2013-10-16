@@ -1,4 +1,4 @@
-d3.json("../data/topology.json", function(error, json){
+d3.json("../data/topology.json", function (error, json) {
 
     var nodes = json.nodes;
     var links = json.links;
@@ -6,12 +6,12 @@ d3.json("../data/topology.json", function(error, json){
     var height = 800;
 
     //generate unique id for each link
-    nodes.forEach(function(n){
+    nodes.forEach(function (n) {
         n.id = generateId();
     });
 
     //generate unique id for each link
-    links.forEach(function(l){
+    links.forEach(function (l) {
         l.id = generateId();
     });
 
@@ -19,7 +19,7 @@ d3.json("../data/topology.json", function(error, json){
         .attr("width", width)
         .attr("height", height);
 
-    var force = d3.layout.force().nodes(nodes).links(links).size([width,height])
+    var force = d3.layout.force().nodes(nodes).links(links).size([width, height])
         .on("tick", tick)
         .on("end", end)
         .linkDistance(80)
@@ -32,62 +32,65 @@ d3.json("../data/topology.json", function(error, json){
             d3.select(this).classed("fixed", true);
         });
 
-    var lineBreakNodeDblClickEvent = function(d, i){
-            //get type of dragged node
-            var nodeType = d.type;
-            //if it is invisible node, get links where the node is parent(2)
-            if (nodeType == "invisible") {
-                var nodeLinks = new Array();
-                links.forEach(function (l) {
-                    if (l.source == d)
-                        nodeLinks.push(l);
+    var lineBreakNodeDblClickEvent = function (d, i) {
+        //get type of dragged node
+        var nodeType = d.type;
+        //if it is invisible node, get links where the node is parent(2)
+        if (nodeType == "invisible") {
+            var nodeLinks = new Array();
+            links.forEach(function (l) {
+                if (l.source == d)
+                    nodeLinks.push(l);
+            });
+
+            //if there are 2 links(must be) check if they are parallel
+            if (nodeLinks.length == 2) {
+                var segment1 = [d, nodeLinks[0].target];
+                var segment2 = [d, nodeLinks[1].target];
+                var areParallel = computeParallelism(segment1, segment2);
+                //if(areParallel){
+                //add links from source to target
+                links.push({
+                    "source": nodeLinks[0].target,
+                    "target": nodeLinks[1].target,
+                    "type": "upload",
+                    "id": generateId()
                 });
 
-                //if there are 2 links(must be) check if they are parallel
-                if (nodeLinks.length == 2) {
-                    var segment1 = [d, nodeLinks[0].target];
-                    var segment2 = [d, nodeLinks[1].target];
-                    var areParallel = computeParallelism(segment1, segment2);
-                    console.log("computing");
-                    //if(areParallel){
-                        //add links from source to target
-                        links.push({
-                            "source" : nodeLinks[0].target,
-                            "target" : nodeLinks[1].target,
-                            "type" : "upload",
-                            "id" : generateId()
-                        });
+                links.push({
+                "source": nodeLinks[1].target,
+                    "target": nodeLinks[0].target,
+                    "type": "upload",
+                    "id": generateId()
+                });
 
-                        links.push({
-                            "source" : nodeLinks[1].target,
-                            "target" : nodeLinks[0].target,
-                            "type" : "upload",
-                            "id" : generateId()
-                        });
+                //remove links
+                var linksForDelete = [];
+                links.forEach(function (l) {
+                    if (l.source == d || l.target == d) {
+                        linksForDelete.push(l);
+                    }
+                });
 
-                        //remove links
-                        var linksForDelete = [];
-                        links.forEach(function(l){
-                            if(l.source == d || l.target == d)  {
-                                linksForDelete.push(l);
-                            }
-                        });
-
-                        for(var i = 0; i < linksForDelete.length; i++){
-                            links.splice(links.indexOf(linksForDelete[i]),1);
-                        }
-                        link.data(links, function(d){return d.id;}).exit().remove();
-
-                        //remove node
-                        nodes.splice(nodes.indexOf(d), 1);
-                        node.data(nodes, function(d){return d.id;}).exit().remove();
-                    restart();
-                    //}
+                for (var i = 0; i < linksForDelete.length; i++) {
+                    links.splice(links.indexOf(linksForDelete[i]), 1);
                 }
-            }
-        };
+                link.data(links,function (d) {
+                    return d.id;
+                }).exit().remove();
 
-    var lineMouseDownEvent = function(d, i){
+                //remove node
+                nodes.splice(nodes.indexOf(d), 1);
+                node.data(nodes,function (d) {
+                    return d.id;
+                }).exit().remove();
+                restart();
+                //}
+            }
+        }
+    };
+
+    var lineMouseDownEvent = function (d, i) {
         //create drag node
         var coordinates = [0, 0];
         coordinates = d3.mouse(this);
@@ -95,46 +98,65 @@ d3.json("../data/topology.json", function(error, json){
         var y = coordinates[1];
 
         var n = {
-            "type" : "invisible",
-            "image" : undefined,
-            "x" : x,
-            "y" : y,
-            "fixed" : true,
-            "id" : generateId()
+            "type": "invisible",
+            "image": undefined,
+            "x": x,
+            "y": y,
+            "fixed": true,
+            "id": generateId()
         }
         nodes.push(n);
-        links.push({"source" : d.source, "target" : n, "type" : "upload", "id" : generateId()});
-        links.push({"source" : n, "target" : d.target, "type" : "upload", "id" : generateId()});
-        links.push({"source" : d.target, "target" : n, "type" : "upload", "id" : generateId()});
-        links.push({"source" : n, "target" : d.source, "type" : "upload", "id" : generateId()});
+        links.push({"source": d.source, "target": n, "type": "upload", "id": generateId()});
+        links.push({"source": n, "target": d.target, "type": "upload", "id": generateId()});
+        links.push({"source": d.target, "target": n, "type": "upload", "id": generateId()});
+        links.push({"source": n, "target": d.source, "type": "upload", "id": generateId()});
 
-        links.forEach(function(l){
-            if(l.source == d.target && l.target == d.source)
-                links.splice(links.indexOf(l),1);
+        links.forEach(function (l) {
+            if (l.source == d.target && l.target == d.source)
+                links.splice(links.indexOf(l), 1);
         });
-        links.splice(links.indexOf(d),1);
-        link.data(links, function(d){return d.id;}).exit().remove();   //nefunguje, treba zacat indexovat elementy klucom
+        links.splice(links.indexOf(d), 1);
+        link.data(links,function (d) {
+            return d.id;
+        }).exit().remove();
 
         restart();
-        //simulate(document.getElementById(n.index), "mousedown", {pointerX: d3.mouse(this)[0], pointerY: d3.mouse(this)[1]});
+        simulate(document.getElementById(n.index), "mousedown", {pointerX: d3.mouse(this)[0], pointerY: d3.mouse(this)[1]});
     };
 
     //straight lines
-    var link = svg.selectAll(".link").data(links, function(d){return d.id;}).enter().append("line")
+    var link = svg.selectAll(".link").data(links,function (d) {
+        return d.id;
+    }).enter().append("line")
         .attr("class", "link")
-        .attr("sourceid", function(d){ return d.source.index;})
-        .attr("targetid", function(d){ return d.target.index;})
-        .attr("id", function(d) {return d.id;})
+        .attr("sourceid", function (d) {
+            return d.source.index;
+        })
+        .attr("targetid", function (d) {
+            return d.target.index;
+        })
+        .attr("id", function (d) {
+            return d.id;
+        })
         .on("mousedown", lineMouseDownEvent);
 
 //Nodes represented by images
-    var node = svg.selectAll(".node").data(nodes, function(d){return d.id;}).enter().append("g")
+    var node = svg.selectAll(".node").data(nodes,function (d) {
+        return d.id;
+    }).enter().append("g")
         .attr("class", "node")
-        .attr("id", function(d){return d.id;})
+        .attr("index", function (d) {
+            return d.index;
+        })
+        .attr("id", function (d) {
+            return d.id;
+        })
         .call(nodeDrag);
 
     node.append("image")
-        .attr("xlink:href", function(d){return d.image;})
+        .attr("xlink:href", function (d) {
+            return d.image;
+        })
         .attr("x", -16)
         .attr("y", -16)
         .attr("width", 32)
@@ -144,92 +166,106 @@ d3.json("../data/topology.json", function(error, json){
         .attr("dx", 18)
         .attr("dy", ".35em")
         .attr("class", "label")
-        .text(function(d) { return d.type });
-
-
-    function tick() {
-        node.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
-
-         // this part of code is working for straight lines between nodes
-         link.attr("x1", function(d) {
-             if(d.source.index > d.target.index)
-             {
-                 return computeCoordinates(d.source.x, d.source.y, d.target.x, d.target.y)[0];
-             }
-             else
-             {
-                 return computeCoordinates(d.source.x, d.source.y, d.target.x, d.target.y)[0];
-             }
-         })
-         .attr("y1", function(d) {
-                 if(d.source.index > d.target.index)
-                 {
-                     return computeCoordinates(d.source.x, d.source.y, d.target.x, d.target.y)[1];
-                 }
-                 else
-                     return computeCoordinates(d.source.x, d.source.y, d.target.x, d.target.y)[1];
-             })
-         .attr("x2", function(d) {
-                 if(d.source.index > d.target.index)
-                 {
-                     return computeCoordinates2(d.target.x, d.target.y, d.source.x, d.source.y)[0];
-                 }
-                 else
-                 {
-                     return  computeCoordinates2(d.target.x, d.target.y, d.source.x, d.source.y)[0];
-                 }
-             })
-         .attr("y2", function(d) {
-                 if(d.source.index > d.target.index)
-                 {
-                     return  computeCoordinates2(d.target.x, d.target.y, d.source.x, d.source.y)[1];
-                 }
-                 else
-                 {
-                     return  computeCoordinates2(d.target.x, d.target.y, d.source.x, d.source.y)[1];
-                 }
-             })
-             .style("stroke", function(d) {
-                    if(d.source.index > d.target.index)
-                        return "blue";
-                    else
-                        return "red";
-             });
-
-    }
+        .text(function (d) {
+            return d.type
+        });
 
     function restart() {
-        link = link.data(links, function(d){return d.id;});
+        force.start();
+        link = link.data(links, function (d) {
+            return d.id;
+        });
 
         link.enter().insert("line", ".node")
             .attr("class", "link")
-            .attr("sourceid", function(d){ return d.source.index;})
-            .attr("targetid", function(d){ return d.target.index;})
-            .attr("id", function(d){ return d.id;})
+            .attr("sourceid", function (d) {
+                return d.source.index;
+            })
+            .attr("targetid", function (d) {
+                return d.target.index;
+            })
+            .attr("id", function (d) {
+                return d.id;
+            })
             .on("mousedown", lineMouseDownEvent);
 
-        node = node.data(nodes, function(d){return d.id;});
+        node = node.data(nodes, function (d) {
+            return d.id;
+        });
 
-        force.start();
-        console.log("restart");
+        //update node indexes in elements
+        node.attr("index", function (d) {
+            return d.index;
+        });
+
+        //add new nodes
         node.enter()
             .insert("circle", ".cursor")
             .attr("class", "node")
             .attr("r", 5)
-            .attr("id", function(d){return d.index;})
+            .attr("id", function (d) {
+                return d.index;
+            })
+            .attr("index", function (d) {
+                return d.index;
+            })
             .call(nodeDrag)
             .on("dblclick", lineBreakNodeDblClickEvent);
-        console.log("restart2");
     }
 
-    function end(){
-        for (var i = 0; i < nodes.length; i++){
+    function tick() {
+        node.attr("transform", function (d) {
+            return "translate(" + d.x + "," + d.y + ")";
+        });
+
+        // this part of code is working for straight lines between nodes
+        link.attr("x1", function (d) {
+            if (d.source.index > d.target.index) {
+                return computeCoordinates(d.source.x, d.source.y, d.target.x, d.target.y)[0];
+            }
+            else {
+                return computeCoordinates(d.source.x, d.source.y, d.target.x, d.target.y)[0];
+            }
+        })
+            .attr("y1", function (d) {
+                if (d.source.index > d.target.index) {
+                    return computeCoordinates(d.source.x, d.source.y, d.target.x, d.target.y)[1];
+                }
+                else
+                    return computeCoordinates(d.source.x, d.source.y, d.target.x, d.target.y)[1];
+            })
+            .attr("x2", function (d) {
+                if (d.source.index > d.target.index) {
+                    return computeCoordinates2(d.target.x, d.target.y, d.source.x, d.source.y)[0];
+                }
+                else {
+                    return  computeCoordinates2(d.target.x, d.target.y, d.source.x, d.source.y)[0];
+                }
+            })
+            .attr("y2", function (d) {
+                if (d.source.index > d.target.index) {
+                    return  computeCoordinates2(d.target.x, d.target.y, d.source.x, d.source.y)[1];
+                }
+                else {
+                    return  computeCoordinates2(d.target.x, d.target.y, d.source.x, d.source.y)[1];
+                }
+            })
+            .style("stroke", function (d) {
+                if (d.source.index > d.target.index)
+                    return "#FF2E83";
+                else
+                    return "#339FFF";
+            });
+    }
+
+    function end() {
+        for (var i = 0; i < nodes.length; i++) {
             nodes[i].fixed = true;
         }
         d3.selectAll(".node").classed("fixed", true);
     }
 
-    function computeParallelism(segment1, segment2){
+    function computeParallelism(segment1, segment2) {
         //compute direction vector of the first segment
         var u1 = segment1[1].x - segment1[0].x;
         var u2 = segment1[1].y - segment1[0].y;
@@ -238,17 +274,14 @@ d3.json("../data/topology.json", function(error, json){
         var v1 = segment2[1].x - segment2[0].x;
         var v2 = segment2[1].y - segment2[0].y;
 
-        console.log(roundNumber(u1/v1, 1));
-        console.log(roundNumber(u2/v2, 1));
-
         //compare ratio of first and second part of direction vectors rounded to 1 decimal number
-        if(roundNumber(u1/v1, 1) == roundNumber(u2/v2, 1))
+        if (roundNumber(u1 / v1, 1) == roundNumber(u2 / v2, 1))
             return true;
         else
             return false;
     }
 
-    function computeCoordinates(source_x, source_y, target_x, target_y){
+    function computeCoordinates(source_x, source_y, target_x, target_y) {
         //body
         var a1 = source_x;
         var a2 = source_y;
@@ -262,24 +295,24 @@ d3.json("../data/topology.json", function(error, json){
         // pytagorova veta na vypocet dlzky ab
         var ab_squared = Math.pow((b1 - a1), 2) + Math.pow((b2 - a2), 2);
 
-        var ac = 2.5;
+        var ac = 2;
         var ac_squared = Math.pow(ac, 2);
         var ratio = ac_squared / ab_squared;
 
-        if(c1 >= a1)
-            var new_c1 = Math.sqrt(Math.pow((c1-a1),2) * ratio) + a1;
+        if (c1 >= a1)
+            var new_c1 = Math.sqrt(Math.pow((c1 - a1), 2) * ratio) + a1;
         else
-            var new_c1 = -(Math.sqrt(Math.pow((c1-a1),2) * ratio)) + a1;
+            var new_c1 = -(Math.sqrt(Math.pow((c1 - a1), 2) * ratio)) + a1;
 
-        if(c2 >= a2)
-            var new_c2 = Math.sqrt(Math.pow((c2-a2),2) * ratio) + a2;
+        if (c2 >= a2)
+            var new_c2 = Math.sqrt(Math.pow((c2 - a2), 2) * ratio) + a2;
         else
-            var new_c2 = -(Math.sqrt(Math.pow((c2-a2),2) * ratio)) + a2;
+            var new_c2 = -(Math.sqrt(Math.pow((c2 - a2), 2) * ratio)) + a2;
 
-        return [new_c1,new_c2];
+        return [new_c1, new_c2];
     }
 
-    function computeCoordinates2(source_x, source_y, target_x, target_y){
+    function computeCoordinates2(source_x, source_y, target_x, target_y) {
         //body
         var a1 = source_x;
         var a2 = source_y;
@@ -293,25 +326,25 @@ d3.json("../data/topology.json", function(error, json){
         // pytagorova veta na vypocet dlzky ab
         var ab_squared = Math.pow((b1 - a1), 2) + Math.pow((b2 - a2), 2);
 
-        var ac = 2.5;
+        var ac = 2;
         var ac_squared = Math.pow(ac, 2);
         var ratio = ac_squared / ab_squared;
 
-        if(c1 >= a1)
-            var new_c1 = Math.sqrt(Math.pow((c1-a1),2) * ratio) + a1;
+        if (c1 >= a1)
+            var new_c1 = Math.sqrt(Math.pow((c1 - a1), 2) * ratio) + a1;
         else
-            var new_c1 = -(Math.sqrt(Math.pow((c1-a1),2) * ratio)) + a1;
+            var new_c1 = -(Math.sqrt(Math.pow((c1 - a1), 2) * ratio)) + a1;
 
-        if(c2 >= a2)
-            var new_c2 = Math.sqrt(Math.pow((c2-a2),2) * ratio) + a2;
+        if (c2 >= a2)
+            var new_c2 = Math.sqrt(Math.pow((c2 - a2), 2) * ratio) + a2;
         else
-            var new_c2 = -(Math.sqrt(Math.pow((c2-a2),2) * ratio)) + a2;
-        return [new_c1,new_c2];
+            var new_c2 = -(Math.sqrt(Math.pow((c2 - a2), 2) * ratio)) + a2;
+        return [new_c1, new_c2];
     }
 
-    function generateId(){
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-            var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+    function generateId() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
             return v.toString(16);
         });
     }
@@ -322,36 +355,33 @@ d3.json("../data/topology.json", function(error, json){
         return rndedNum;
     }
 
-    function simulate(element, eventName)
-    {
+    function simulate(element, eventName) {
         var options = extend(defaultOptions, arguments[2] || {});
         var oEvent, eventType = null;
 
-        for (var name in eventMatchers)
-        {
-            if (eventMatchers[name].test(eventName)) { eventType = name; break; }
+        for (var name in eventMatchers) {
+            if (eventMatchers[name].test(eventName)) {
+                eventType = name;
+                break;
+            }
         }
 
         if (!eventType)
             throw new SyntaxError('Only HTMLEvents and MouseEvents interfaces are supported');
 
-        if (document.createEvent)
-        {
+        if (document.createEvent) {
             oEvent = document.createEvent(eventType);
-            if (eventType == 'HTMLEvents')
-            {
+            if (eventType == 'HTMLEvents') {
                 oEvent.initEvent(eventName, options.bubbles, options.cancelable);
             }
-            else
-            {
+            else {
                 oEvent.initMouseEvent(eventName, options.bubbles, options.cancelable, document.defaultView,
                     options.button, options.pointerX, options.pointerY, options.pointerX, options.pointerY,
                     options.ctrlKey, options.altKey, options.shiftKey, options.metaKey, options.button, element);
             }
             element.dispatchEvent(oEvent);
         }
-        else
-        {
+        else {
             options.clientX = options.pointerX;
             options.clientY = options.pointerY;
             var evt = document.createEventObject();
