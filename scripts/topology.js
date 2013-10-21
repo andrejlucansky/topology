@@ -57,7 +57,7 @@ d3.json("../data/topology.json", function (error, json) {
                 });
 
                 links.push({
-                "source": nodeLinks[1].target,
+                    "source": nodeLinks[1].target,
                     "target": nodeLinks[0].target,
                     "type": "upload",
                     "id": generateId()
@@ -88,11 +88,11 @@ d3.json("../data/topology.json", function (error, json) {
         }
     };
 
-    var routerNodeDblClickEvent = function(d){
-        links.forEach(function(l){
-            if(l.source == d && l.target.type != "router"){
+    var routerNodeDblClickEvent = function (d) {
+        links.forEach(function (l) {
+            if (l.source == d && l.target.type != "router") {
                 //remove node and link
-                nodes.splice(nodes.indexOf(l.source),1);
+                nodes.splice(nodes.indexOf(l.source), 1);
                 node.data(nodes,function (d) {
                     return d.id;
                 }).exit().remove();
@@ -235,16 +235,16 @@ d3.json("../data/topology.json", function (error, json) {
 
         // this part of code is working for straight lines between nodes
         link.attr("x1", function (d) {
-                return computeCoordinates(d.source.x, d.source.y, d.target.x, d.target.y)[0];
+            return computeCoordinates(d.source.x, d.source.y, d.target.x, d.target.y, {"direction": "right"})[0];
         })
             .attr("y1", function (d) {
-                    return computeCoordinates(d.source.x, d.source.y, d.target.x, d.target.y)[1];
+                return computeCoordinates(d.source.x, d.source.y, d.target.x, d.target.y, {"direction": "right"})[1];
             })
             .attr("x2", function (d) {
-                    return  computeCoordinates2(d.target.x, d.target.y, d.source.x, d.source.y)[0];
+                return  computeCoordinates(d.target.x, d.target.y, d.source.x, d.source.y, {"direction": "left"})[0];
             })
             .attr("y2", function (d) {
-                    return  computeCoordinates2(d.target.x, d.target.y, d.source.x, d.source.y)[1];
+                return  computeCoordinates(d.target.x, d.target.y, d.source.x, d.source.y, {"direction": "left"})[1];
             })
             .style("stroke", function (d) {
                 if (d.source.index > d.target.index)
@@ -261,23 +261,15 @@ d3.json("../data/topology.json", function (error, json) {
         d3.selectAll(".node").classed("fixed", true);
     }
 
-    function computeParallelism(segment1, segment2) {
-        //compute direction vector of the first segment
-        var u1 = segment1[1].x - segment1[0].x;
-        var u2 = segment1[1].y - segment1[0].y;
+    function computeCoordinates(a1, a2, b1, b2, options) {
 
-        //compute direction vector of the second segment
-        var v1 = segment2[1].x - segment2[0].x;
-        var v2 = segment2[1].y - segment2[0].y;
-
-        //compare ratio of first and second part of direction vectors rounded to 1 decimal number
-        return roundNumber(u1 / v1, 1) == roundNumber(u2 / v2, 1);
-    }
-
-    function computeCoordinates(a1, a2, b1, b2) {
-
-        var c1 = a2 + a1 - b2;
-        var c2 = a2 - a1 + b1;
+        if (options.direction == "right") {
+            var c1 = a2 + a1 - b2;
+            var c2 = a2 - a1 + b1;
+        } else {
+            var c1 = a1 - a2 + b2;
+            var c2 = a1 + a2 - b1;
+        }
 
         // pytagorova veta na vypocet dlzky ab
         var ab_squared = Math.pow((b1 - a1), 2) + Math.pow((b2 - a2), 2);
@@ -296,30 +288,6 @@ d3.json("../data/topology.json", function (error, json) {
         else
             var new_c2 = -(Math.sqrt(Math.pow((c2 - a2), 2) * ratio)) + a2;
 
-        return [new_c1, new_c2];
-    }
-
-    function computeCoordinates2(a1, a2, b1, b2) {
-
-        var c1 = a1 - a2 + b2;
-        var c2 = a1 + a2 - b1;
-
-        // pytagorova veta na vypocet dlzky ab
-        var ab_squared = Math.pow((b1 - a1), 2) + Math.pow((b2 - a2), 2);
-
-        var ac = 2;
-        var ac_squared = Math.pow(ac, 2);
-        var ratio = ac_squared / ab_squared;
-
-        if (c1 >= a1)
-            var new_c1 = Math.sqrt(Math.pow((c1 - a1), 2) * ratio) + a1;
-        else
-            var new_c1 = -(Math.sqrt(Math.pow((c1 - a1), 2) * ratio)) + a1;
-
-        if (c2 >= a2)
-            var new_c2 = Math.sqrt(Math.pow((c2 - a2), 2) * ratio) + a2;
-        else
-            var new_c2 = -(Math.sqrt(Math.pow((c2 - a2), 2) * ratio)) + a2;
         return [new_c1, new_c2];
     }
 
@@ -328,11 +296,6 @@ d3.json("../data/topology.json", function (error, json) {
             var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
             return v.toString(16);
         });
-    }
-
-    function roundNumber(number, digits) {
-        var multiple = Math.pow(10, digits);
-        return  (Math.round(number * multiple) / multiple);
     }
 
     function simulate(element, eventName) {
@@ -393,4 +356,22 @@ d3.json("../data/topology.json", function (error, json) {
         bubbles: true,
         cancelable: true
     };
+
+    function roundNumber(number, digits) {
+        var multiple = Math.pow(10, digits);
+        return  (Math.round(number * multiple) / multiple);
+    }
+
+    function computeParallelism(segment1, segment2) {
+        //compute direction vector of the first segment
+        var u1 = segment1[1].x - segment1[0].x;
+        var u2 = segment1[1].y - segment1[0].y;
+
+        //compute direction vector of the second segment
+        var v1 = segment2[1].x - segment2[0].x;
+        var v2 = segment2[1].y - segment2[0].y;
+
+        //compare ratio of first and second part of direction vectors rounded to 1 decimal number
+        return roundNumber(u1 / v1, 1) == roundNumber(u2 / v2, 1);
+    }
 });
