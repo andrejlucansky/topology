@@ -48,10 +48,6 @@ d3.json("../data/topology.json", function (error, json) {
 
             //if there are 2 links(must be) check if they are parallel
             if (nodeLinks.length == 2) {
-/*                var segment1 = [d, nodeLinks[0].target];
-                var segment2 = [d, nodeLinks[1].target];
-                var areParallel = computeParallelism(segment1, segment2);
-                if(areParallel){*/
                 //add links from source to target
                 links.push({
                     "source": nodeLinks[0].target,
@@ -88,7 +84,6 @@ d3.json("../data/topology.json", function (error, json) {
                     return d.id;
                 }).exit().remove();
                 restart();
-                //}
             }
         }
     };
