@@ -13,7 +13,10 @@ d3.json("../data/topology.json", function (error, json) {
     //generate unique id for each link
     links.forEach(function (l) {
         l.id = generateId();
+        //create link in opposite direction
+        links.push({"source": l.target, "target": l.source, "type": "upload", "id": generateId()});
     });
+
 
     var svg = d3.select("body").append("svg")
         .attr("width", width)
@@ -32,12 +35,12 @@ d3.json("../data/topology.json", function (error, json) {
             d3.select(this).classed("fixed", true);
         });
 
-    var lineBreakNodeDblClickEvent = function (d, i) {
+    var lineBreakNodeDblClickEvent = function (d) {
         //get type of dragged node
         var nodeType = d.type;
         //if it is invisible node, get links where the node is parent(2)
         if (nodeType == "invisible") {
-            var nodeLinks = new Array();
+            var nodeLinks = [];
             links.forEach(function (l) {
                 if (l.source == d)
                     nodeLinks.push(l);
@@ -45,10 +48,10 @@ d3.json("../data/topology.json", function (error, json) {
 
             //if there are 2 links(must be) check if they are parallel
             if (nodeLinks.length == 2) {
-                var segment1 = [d, nodeLinks[0].target];
+/*                var segment1 = [d, nodeLinks[0].target];
                 var segment2 = [d, nodeLinks[1].target];
                 var areParallel = computeParallelism(segment1, segment2);
-                //if(areParallel){
+                if(areParallel){*/
                 //add links from source to target
                 links.push({
                     "source": nodeLinks[0].target,
@@ -90,10 +93,26 @@ d3.json("../data/topology.json", function (error, json) {
         }
     };
 
-    var lineMouseDownEvent = function (d, i) {
+    var routerNodeDblClickEvent = function(d){
+        links.forEach(function(l){
+            if(l.source == d && l.target.type != "router"){
+                //remove node and link
+                nodes.splice(nodes.indexOf(l.source),1);
+                node.data(nodes,function (d) {
+                    return d.id;
+                }).exit().remove();
+
+                links.splice(links.indexOf(l), 1);
+                link.data(links,function (d) {
+                    return d.id;
+                }).exit().remove();
+            }
+        });
+    };
+
+    var lineMouseDownEvent = function (d) {
         //create drag node
-        var coordinates = [0, 0];
-        coordinates = d3.mouse(this);
+        var coordinates = d3.mouse(this);
         var x = coordinates[0];
         var y = coordinates[1];
 
@@ -104,7 +123,8 @@ d3.json("../data/topology.json", function (error, json) {
             "y": y,
             "fixed": true,
             "id": generateId()
-        }
+        };
+
         nodes.push(n);
         links.push({"source": d.source, "target": n, "type": "upload", "id": generateId()});
         links.push({"source": n, "target": d.target, "type": "upload", "id": generateId()});
@@ -220,35 +240,16 @@ d3.json("../data/topology.json", function (error, json) {
 
         // this part of code is working for straight lines between nodes
         link.attr("x1", function (d) {
-            if (d.source.index > d.target.index) {
                 return computeCoordinates(d.source.x, d.source.y, d.target.x, d.target.y)[0];
-            }
-            else {
-                return computeCoordinates(d.source.x, d.source.y, d.target.x, d.target.y)[0];
-            }
         })
             .attr("y1", function (d) {
-                if (d.source.index > d.target.index) {
-                    return computeCoordinates(d.source.x, d.source.y, d.target.x, d.target.y)[1];
-                }
-                else
                     return computeCoordinates(d.source.x, d.source.y, d.target.x, d.target.y)[1];
             })
             .attr("x2", function (d) {
-                if (d.source.index > d.target.index) {
-                    return computeCoordinates2(d.target.x, d.target.y, d.source.x, d.source.y)[0];
-                }
-                else {
                     return  computeCoordinates2(d.target.x, d.target.y, d.source.x, d.source.y)[0];
-                }
             })
             .attr("y2", function (d) {
-                if (d.source.index > d.target.index) {
                     return  computeCoordinates2(d.target.x, d.target.y, d.source.x, d.source.y)[1];
-                }
-                else {
-                    return  computeCoordinates2(d.target.x, d.target.y, d.source.x, d.source.y)[1];
-                }
             })
             .style("stroke", function (d) {
                 if (d.source.index > d.target.index)
@@ -275,19 +276,10 @@ d3.json("../data/topology.json", function (error, json) {
         var v2 = segment2[1].y - segment2[0].y;
 
         //compare ratio of first and second part of direction vectors rounded to 1 decimal number
-        if (roundNumber(u1 / v1, 1) == roundNumber(u2 / v2, 1))
-            return true;
-        else
-            return false;
+        return roundNumber(u1 / v1, 1) == roundNumber(u2 / v2, 1);
     }
 
-    function computeCoordinates(source_x, source_y, target_x, target_y) {
-        //body
-        var a1 = source_x;
-        var a2 = source_y;
-
-        var b1 = target_x;
-        var b2 = target_y;
+    function computeCoordinates(a1, a2, b1, b2) {
 
         var c1 = a2 + a1 - b2;
         var c2 = a2 - a1 + b1;
@@ -312,13 +304,7 @@ d3.json("../data/topology.json", function (error, json) {
         return [new_c1, new_c2];
     }
 
-    function computeCoordinates2(source_x, source_y, target_x, target_y) {
-        //body
-        var a1 = source_x;
-        var a2 = source_y;
-
-        var b1 = target_x;
-        var b2 = target_y;
+    function computeCoordinates2(a1, a2, b1, b2) {
 
         var c1 = a1 - a2 + b2;
         var c2 = a1 + a2 - b1;
@@ -351,8 +337,7 @@ d3.json("../data/topology.json", function (error, json) {
 
     function roundNumber(number, digits) {
         var multiple = Math.pow(10, digits);
-        var rndedNum = Math.round(number * multiple) / multiple;
-        return rndedNum;
+        return  (Math.round(number * multiple) / multiple);
     }
 
     function simulate(element, eventName) {
@@ -400,7 +385,8 @@ d3.json("../data/topology.json", function (error, json) {
     var eventMatchers = {
         'HTMLEvents': /^(?:load|unload|abort|error|select|change|submit|reset|focus|blur|resize|scroll)$/,
         'MouseEvents': /^(?:click|dblclick|mouse(?:down|up|over|move|out))$/
-    }
+    };
+
     var defaultOptions = {
         pointerX: 0,
         pointerY: 0,
@@ -411,5 +397,5 @@ d3.json("../data/topology.json", function (error, json) {
         metaKey: false,
         bubbles: true,
         cancelable: true
-    }
+    };
 });
