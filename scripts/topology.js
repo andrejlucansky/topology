@@ -1,22 +1,30 @@
-d3.json("../data/topology.json", function (error, json) {
-
+d3.json("../data/clusterTopology.json", function (error, json) {
     var nodes = json.nodes;
     var links = json.links;
     var width = 800;
     var height = 800;
 
-    //generate unique id for each link
+    var nodeSize = 32;
+    var lineBreakNodeSize = 10;
+
+    //generate unique id for each node
     nodes.forEach(function (n) {
         n.id = generateId();
+        n.size = {
+            "width" : nodeSize,
+            "height" : nodeSize
+        };
+        //set every router as his own parent
+        if(n.type == "router")
+            n.parent = n;
     });
 
-    //generate unique id for each link
+    //generate unique id for each opposite direction link and add the link
     links.forEach(function (l) {
         l.id = generateId();
         //create link in opposite direction
         links.push({"source": l.target, "target": l.source, "type": "upload", "id": generateId()});
     });
-
 
     var svg = d3.select("body").append("svg")
         .attr("width", width)
@@ -29,115 +37,19 @@ d3.json("../data/topology.json", function (error, json) {
         .charge(-500)
         .start();
 
+    //create parent-child relationship in tree
+    links.forEach(function(l){
+        if(l.source.type  == "router" && l.target.type != "router"){
+            l.target.parent = l.source;
+            l.source.children.push(l.target);
+        }
+    });
+
     var nodeDrag = force.drag()
         .on("dragstart", function (d) {
             d.fixed = true;
             d3.select(this).classed("fixed", true);
         });
-
-    var lineBreakNodeDblClickEvent = function (d) {
-        //get type of dragged node
-        var nodeType = d.type;
-        //if it is invisible node, get links where the node is parent(2)
-        if (nodeType == "invisible") {
-            var nodeLinks = [];
-            links.forEach(function (l) {
-                if (l.source == d)
-                    nodeLinks.push(l);
-            });
-
-            //if there are 2 links(must be) check if they are parallel
-            if (nodeLinks.length == 2) {
-                //add links from source to target
-                links.push({
-                    "source": nodeLinks[0].target,
-                    "target": nodeLinks[1].target,
-                    "type": "upload",
-                    "id": generateId()
-                });
-
-                links.push({
-                    "source": nodeLinks[1].target,
-                    "target": nodeLinks[0].target,
-                    "type": "upload",
-                    "id": generateId()
-                });
-
-                //remove links
-                var linksForDelete = [];
-                links.forEach(function (l) {
-                    if (l.source == d || l.target == d) {
-                        linksForDelete.push(l);
-                    }
-                });
-
-                for (var i = 0; i < linksForDelete.length; i++) {
-                    links.splice(links.indexOf(linksForDelete[i]), 1);
-                }
-                link.data(links,function (d) {
-                    return d.id;
-                }).exit().remove();
-
-                //remove node
-                nodes.splice(nodes.indexOf(d), 1);
-                node.data(nodes,function (d) {
-                    return d.id;
-                }).exit().remove();
-                restart();
-            }
-        }
-    };
-
-    var routerNodeDblClickEvent = function (d) {
-        links.forEach(function (l) {
-            if (l.source == d && l.target.type != "router") {
-                //remove node and link
-                nodes.splice(nodes.indexOf(l.source), 1);
-                node.data(nodes,function (d) {
-                    return d.id;
-                }).exit().remove();
-
-                links.splice(links.indexOf(l), 1);
-                link.data(links,function (d) {
-                    return d.id;
-                }).exit().remove();
-            }
-        });
-    };
-
-    var lineMouseDownEvent = function (d) {
-        //create drag node
-        var coordinates = d3.mouse(this);
-        var x = coordinates[0];
-        var y = coordinates[1];
-
-        var n = {
-            "type": "invisible",
-            "image": undefined,
-            "x": x,
-            "y": y,
-            "fixed": true,
-            "id": generateId()
-        };
-
-        nodes.push(n);
-        links.push({"source": d.source, "target": n, "type": "upload", "id": generateId()});
-        links.push({"source": n, "target": d.target, "type": "upload", "id": generateId()});
-        links.push({"source": d.target, "target": n, "type": "upload", "id": generateId()});
-        links.push({"source": n, "target": d.source, "type": "upload", "id": generateId()});
-
-        links.forEach(function (l) {
-            if (l.source == d.target && l.target == d.source)
-                links.splice(links.indexOf(l), 1);
-        });
-        links.splice(links.indexOf(d), 1);
-        link.data(links,function (d) {
-            return d.id;
-        }).exit().remove();
-
-        restart();
-        simulate(document.getElementById(n.index), "mousedown", {pointerX: d3.mouse(this)[0], pointerY: d3.mouse(this)[1]});
-    };
 
     //straight lines
     var link = svg.selectAll(".link").data(links,function (d) {
@@ -159,7 +71,7 @@ d3.json("../data/topology.json", function (error, json) {
     var node = svg.selectAll(".node").data(nodes,function (d) {
         return d.id;
     }).enter().append("g")
-        .attr("class", "node")
+        .attr("class", function(d){return "node " + d.type})
         .attr("index", function (d) {
             return d.index;
         })
@@ -172,10 +84,10 @@ d3.json("../data/topology.json", function (error, json) {
         .attr("xlink:href", function (d) {
             return d.image;
         })
-        .attr("x", -16)
-        .attr("y", -16)
-        .attr("width", 32)
-        .attr("height", 32);
+        .attr("x",  function(d){ return -(d.size.width/2);})
+        .attr("y",  function(d){ return -(d.size.height/2);})
+        .attr("width", function(d){ return d.size.width;})
+        .attr("height", function(d){ return d.size.height;});
 
     node.append("text")
         .attr("dx", 18)
@@ -185,7 +97,81 @@ d3.json("../data/topology.json", function (error, json) {
             return d.type
         });
 
-    function restart() {
+    var router = svg.selectAll(".router").on("dblclick", routerNodeDblClickEvent);
+
+    function routerNodeDblClickEvent(d) {
+        if (!d3.event.defaultPrevented) {
+            if (d.children.length > 0) {
+                d.children.forEach(function(n){
+                    nodes.splice(nodes.indexOf(n),1);
+                });
+                d._children = d.children;
+                d.children = [];
+
+                d._children.forEach(function(ch){
+                    removeLinks(ch);
+                });
+
+                exitNodes();
+                exitLinks();
+                update();
+
+            } else {
+                d.children = d._children;
+                d._children = [];
+                d.children.forEach(function(n){
+                    nodes.push(n);
+
+                    //TODO toto neplati pre line break uzly
+                    links.push({"source": d, "target": n, "type": "upload", "id": generateId()});
+                    links.push({"source": n, "target": d, "type": "upload", "id": generateId()});
+                    links.push({"source": d, "target": n, "type": "upload", "id": generateId()});
+                    links.push({"source": n, "target": d, "type": "upload", "id": generateId()});
+                });
+                update();
+            }
+        }
+    };
+
+    function update(){
+        node = node.data(nodes, function (d) {
+            return d.id;
+        });
+
+        //update node indexes in elements
+        node.attr("index", function (d) {
+            return d.index;
+        });
+
+        //add new nodes
+        node.enter().append("g")
+            .attr("class", function(d){return "node " + d.type})
+            .attr("index", function (d) {
+                return d.index;
+            })
+            .attr("id", function (d) {
+                return d.id;
+            })
+            .call(nodeDrag)
+            .append("image")
+            .attr("xlink:href", function (d) {
+                return d.image;
+            })
+            .attr("x", function(d){ return -(d.size.width/2);})
+            .attr("y", function(d){ return -(d.size.width/2);})
+            .attr("width", function(d){ return d.size.width;})
+            .attr("height", function(d){ return d.size.height;})
+            .on("dblclick", lineBreakNodeDblClickEvent);
+
+        node.append("text")
+            .attr("dx", 18)
+            .attr("dy", ".35em")
+            .attr("class", "label")
+            .text(function (d) {
+                return d.type
+            });
+
+
         force.start();
         link = link.data(links, function (d) {
             return d.id;
@@ -203,29 +189,96 @@ d3.json("../data/topology.json", function (error, json) {
                 return d.id;
             })
             .on("mousedown", lineMouseDownEvent);
+    }
 
-        node = node.data(nodes, function (d) {
+    function lineBreakNodeDblClickEvent(d) {
+            var nodeLinks = [];
+            links.forEach(function (l) {
+                if (l.source == d)
+                    nodeLinks.push(l);
+            });
+
+                links.push({
+                    "source": nodeLinks[0].target,
+                    "target": nodeLinks[1].target,
+                    "type": "upload",
+                    "id": generateId()
+                });
+
+                links.push({
+                    "source": nodeLinks[1].target,
+                    "target": nodeLinks[0].target,
+                    "type": "upload",
+                    "id": generateId()
+                });
+
+                removeLinks(d);
+                exitLinks();
+
+                nodes.splice(nodes.indexOf(d), 1);
+                exitNodes();
+                update();
+    };
+
+    function lineMouseDownEvent(d) {
+        //create drag node
+        var coordinates = d3.mouse(this);
+        var x = coordinates[0];
+        var y = coordinates[1];
+
+        var n = {
+            "type": "invisible",
+            "image": "../images/drag.png",
+            "x": x,
+            "y": y,
+            "fixed": true,
+            "id": generateId(),
+            "parent" : d.source.parent,
+            "size" : {
+                "width" : lineBreakNodeSize,
+                "height" : lineBreakNodeSize
+            }
+        };
+
+        nodes.push(n);
+        links.push({"source": d.source, "target": n, "type": "upload", "id": generateId()});
+        links.push({"source": n, "target": d.target, "type": "upload", "id": generateId()});
+        links.push({"source": d.target, "target": n, "type": "upload", "id": generateId()});
+        links.push({"source": n, "target": d.source, "type": "upload", "id": generateId()});
+
+        //add node as child to his parent router
+        d.source.parent.children.push(n);
+
+        links.forEach(function (l) {
+            if (l.source == d.target && l.target == d.source)
+                links.splice(links.indexOf(l), 1);
+        });
+        links.splice(links.indexOf(d), 1);
+        exitLinks();
+        update();
+        simulate(document.getElementById(n.id), "mousedown", {pointerX: d3.mouse(this)[0], pointerY: d3.mouse(this)[1]});
+    };
+
+    function removeLinks(n){
+        var i = 0;
+        while(i < links.length){
+            if(links[i].source == n || links[i].target == n)
+                links.splice(links.indexOf(links[i]), 1);
+            else
+                i++;
+        }
+    }
+
+    function exitNodes(){
+        node.data(nodes,function (d) {
             return d.id;
-        });
+        }).exit().remove();
+    }
 
-        //update node indexes in elements
-        node.attr("index", function (d) {
-            return d.index;
-        });
-
-        //add new nodes
-        node.enter()
-            .insert("circle", ".cursor")
-            .attr("class", "node")
-            .attr("r", 5)
-            .attr("id", function (d) {
-                return d.index;
-            })
-            .attr("index", function (d) {
-                return d.index;
-            })
-            .call(nodeDrag)
-            .on("dblclick", lineBreakNodeDblClickEvent);
+    function exitLinks(){
+        link.data(links,function (d) {
+            return d.id;
+        }).exit().remove();
     }
 
     function tick() {
@@ -263,12 +316,14 @@ d3.json("../data/topology.json", function (error, json) {
 
     function computeCoordinates(a1, a2, b1, b2, options) {
 
-        if (options.direction == "right") {
-            var c1 = a2 + a1 - b2;
-            var c2 = a2 - a1 + b1;
+        var c1, c2, new_c1, new_c2;
+
+        if (options && options.direction == "right") {
+            c1 = a2 + a1 - b2;
+            c2 = a2 - a1 + b1;
         } else {
-            var c1 = a1 - a2 + b2;
-            var c2 = a1 + a2 - b1;
+            c1 = a1 - a2 + b2;
+            c2 = a1 + a2 - b1;
         }
 
         // pytagorova veta na vypocet dlzky ab
@@ -279,14 +334,14 @@ d3.json("../data/topology.json", function (error, json) {
         var ratio = ac_squared / ab_squared;
 
         if (c1 >= a1)
-            var new_c1 = Math.sqrt(Math.pow((c1 - a1), 2) * ratio) + a1;
+            new_c1 = Math.sqrt(Math.pow((c1 - a1), 2) * ratio) + a1;
         else
-            var new_c1 = -(Math.sqrt(Math.pow((c1 - a1), 2) * ratio)) + a1;
+            new_c1 = -(Math.sqrt(Math.pow((c1 - a1), 2) * ratio)) + a1;
 
         if (c2 >= a2)
-            var new_c2 = Math.sqrt(Math.pow((c2 - a2), 2) * ratio) + a2;
+            new_c2 = Math.sqrt(Math.pow((c2 - a2), 2) * ratio) + a2;
         else
-            var new_c2 = -(Math.sqrt(Math.pow((c2 - a2), 2) * ratio)) + a2;
+            new_c2 = -(Math.sqrt(Math.pow((c2 - a2), 2) * ratio)) + a2;
 
         return [new_c1, new_c2];
     }
@@ -373,5 +428,31 @@ d3.json("../data/topology.json", function (error, json) {
 
         //compare ratio of first and second part of direction vectors rounded to 1 decimal number
         return roundNumber(u1 / v1, 1) == roundNumber(u2 / v2, 1);
+    }
+
+    function testArrayRemove(){
+        pole = [1,2,3,4,5];
+
+        pole.forEach(function(d){
+            console.log("Prvok: "+d);
+            if(d == 3 || d==4)  {
+                console.log("mazem"+d);
+
+                pole.splice(2,1);
+            }
+        });
+
+        pole = [1,2,3,4,5];
+        var i = 0;
+
+        while(i < pole.length){
+            console.log("Prvok: "+pole[i]);
+            if(pole[i] == 3 || pole[i]==4)  {
+                console.log("mazem"+pole[i]);
+                pole.splice(2,1);
+            }
+            else
+                i++;
+        }
     }
 });

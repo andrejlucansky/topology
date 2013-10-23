@@ -2,11 +2,13 @@
     "nodes": [
         {
             "type": "router",
-            "image": "../images/router.png"
+            "image": "../images/router.png",
+            "children" : []
         },
         {
             "type": "router",
-            "image": "../images/router.png"
+            "image": "../images/router.png",
+            "children" : []
         },
         {
             "type": "computer",
@@ -102,7 +104,8 @@
         },
         {
             "type": "router",
-            "image": "../images/router.png"
+            "image": "../images/router.png",
+            "children" : []
         },
         {
             "type": "computer",
@@ -155,7 +158,8 @@
 
         {
             "type": "router",
-            "image": "../images/router.png"
+            "image": "../images/router.png",
+            "children" : []
         },
         {
             "type": "computer",

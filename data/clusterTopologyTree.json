@@ -1,0 +1,241 @@
+{
+    "name" : "Network Topology",
+    "type" : "network",
+    "language" : "english",
+    "children": [
+        {
+            "name" : "Router 1",
+            "type" : "router",
+            "role" : "neutral",
+            "id" : "0",
+            "children": [
+                {
+                    "name" : "Computer 1",
+                    "type" : "computer",
+                    "role" : "attacker",
+                    "id" : "1"
+                },
+                {
+                    "name" : "Computer 2",
+                    "type" : "computer",
+                    "role" : "neutral",
+                    "id" : "2"
+                },
+                {
+                    "name" : "Computer 3",
+                    "type" : "mobile",
+                    "role" : "attacker",
+                    "id" : "3"
+                },
+                {
+                    "name" : "Computer 4",
+                    "type" : "mobile",
+                    "role" : "neutral",
+                    "id" : "4"
+                },
+                {
+                    "name" : "Computer 5",
+                    "type" : "computer",
+                    "role" : "attacker",
+                    "id" : "5"
+                },
+                {
+                    "name" : "Computer 6",
+                    "type" : "computer",
+                    "role" : "neutral",
+                    "id" : "6"
+                },
+                {
+                    "name" : "Computer 7",
+                    "type" : "computer",
+                    "role" : "attacker",
+                    "id" : "7"
+                },
+                {
+                    "name" : "Computer 8",
+                    "type" : "mobile",
+                    "role" : "neutral",
+                    "id" : "8"
+                },
+                {
+                    "name" : "Computer 9",
+                    "type" : "mobile",
+                    "role" : "attacker",
+                    "id" : "9"
+                },
+                {
+                    "name" : "Computer 10",
+                    "type" : "computer",
+                    "role" : "neutral",
+                    "id" : "10"
+                }
+            ]
+        },
+        {
+            "name" : "Router 2",
+            "type" : "router",
+            "role" : "neutral",
+            "id" : "11",
+            "children": [
+                {
+                    "name" : "Computer 1",
+                    "type" : "computer",
+                    "role" : "neutral",
+                    "id" : "12"
+                },
+                {
+                    "name" : "Computer 2",
+                    "type" : "computer",
+                    "role" : "attacker",
+                    "id" : "13"
+                },
+                {
+                    "name" : "Computer 3",
+                    "type" : "mobile",
+                    "role" : "attacker",
+                    "id" : "14"
+                },
+                {
+                    "name" : "Computer 4",
+                    "type" : "mobile",
+                    "role" : "neutral",
+                    "id" : "15"
+                },
+                {
+                    "name" : "Computer 5",
+                    "type" : "computer",
+                    "role" : "attacker",
+                    "id" : "16"
+                },
+                {
+                    "name" : "Computer 6",
+                    "type" : "mobile",
+                    "role" : "attacker",
+                    "id" : "17"
+                },
+                {
+                    "name" : "Computer 7",
+                    "type" : "computer",
+                    "role" : "neutral",
+                    "id" : "18"
+                }
+            ]
+        },
+        {
+            "name" : "Router 3",
+            "type" : "router",
+            "role" : "neutral",
+            "id" : "19",
+            "children": [
+                {
+                    "name" : "Computer 1",
+                    "type" : "computer",
+                    "role" : "neutral",
+                    "id" : "20"
+                },
+                {
+                    "name" : "Computer 2",
+                    "type" : "computer",
+                    "role" : "attacker",
+                    "id" : "21"
+                },
+                {
+                    "name" : "Computer 3",
+                    "type" : "mobile",
+                    "role" : "neutral",
+                    "id" : "22"
+                },
+                {
+                    "name" : "Computer 4",
+                    "type" : "mobile",
+                    "role" : "attacker",
+                    "id" : "23"
+                },
+                {
+                    "name" : "Computer 5",
+                    "type" : "computer",
+                    "role" : "attacker",
+                    "id" : "24"
+                },
+                {
+                    "name" : "Computer 6",
+                    "type" : "computer",
+                    "role" : "neutral",
+                    "id" : "25"
+                },
+                {
+                    "name" : "Computer 7",
+                    "type" : "computer",
+                    "role" : "attacker",
+                    "id" : "26"
+                },
+                {
+                    "name" : "Computer 8",
+                    "type" : "mobile",
+                    "role" : "neutral",
+                    "id" : "27"
+                },
+                {
+                    "name" : "Computer 9",
+                    "type" : "mobile",
+                    "role" : "attacker",
+                    "id" : "28"
+                },
+                {
+                    "name" : "Computer 10",
+                    "type" : "computer",
+                    "role" : "neutral",
+                    "id" : "29"
+                }
+            ]
+        },
+        {
+            "name" : "Router 4",
+            "type" : "router",
+            "role" : "neutral",
+            "id" : "30"
+            "children": [
+                {
+                    "name" : "Computer 1",
+                    "type" : "computer",
+                    "role" : "neutral",
+                    "id" : "31"
+                },
+                {
+                    "name" : "Computer 2",
+                    "type" : "computer",
+                    "role" : "neutral",
+                    "id" : "32"
+                },
+                {
+                    "name" : "Computer 3",
+                    "type" : "mobile",
+                    "role" : "attacker",
+                    "id" : "33"
+                }
+            ]
+        }
+    ],
+    "links" : [
+        {
+            "type" : "routerToRouter",
+            "source" : "0",
+            "target" : "11"
+        },
+        {
+            "type" : "routerToRouter",
+            "source" : "11",
+            "target" : "19"
+        },
+        {
+            "type" : "routerToRouter",
+            "source" : "19",
+            "target" : "30"
+        },
+        {
+            "type" : "routerToRouter",
+            "source" : "30",
+            "target" : "11"
+        }
+    ]
+}
