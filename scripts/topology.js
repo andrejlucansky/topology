@@ -1,4 +1,4 @@
-d3.json("../data/clusterTopology.json", function (error, json) {
+d3.json("../data/collabsibleTopology.json", function (error, json) {
     var nodes = json.nodes;
     var links = json.links;
     var width = 800;
@@ -67,7 +67,7 @@ d3.json("../data/clusterTopology.json", function (error, json) {
         })
         .on("mousedown", lineMouseDownEvent);
 
-//Nodes represented by images
+    //Nodes represented by images
     var node = svg.selectAll(".node").data(nodes,function (d) {
         return d.id;
     }).enter().append("g")
@@ -125,10 +125,14 @@ d3.json("../data/clusterTopology.json", function (error, json) {
                     //TODO toto neplati pre line break uzly
                     links.push({"source": d, "target": n, "type": "upload", "id": generateId()});
                     links.push({"source": n, "target": d, "type": "upload", "id": generateId()});
-                    links.push({"source": d, "target": n, "type": "upload", "id": generateId()});
-                    links.push({"source": n, "target": d, "type": "upload", "id": generateId()});
                 });
-                update();
+                update().append("text")
+                    .attr("dx", 18)
+                    .attr("dy", ".35em")
+                    .attr("class", "label")
+                    .text(function (d) {
+                        return d.name;
+                    });
             }
         }
     };
@@ -138,13 +142,8 @@ d3.json("../data/clusterTopology.json", function (error, json) {
             return d.id;
         });
 
-        //update node indexes in elements
-        node.attr("index", function (d) {
-            return d.index;
-        });
-
         //add new nodes
-        node.enter().append("g")
+        group = node.enter().append("g")
             .attr("class", function(d){return "node " + d.type})
             .attr("index", function (d) {
                 return d.index;
@@ -163,15 +162,7 @@ d3.json("../data/clusterTopology.json", function (error, json) {
             .attr("height", function(d){ return d.size.height;})
             .on("dblclick", lineBreakNodeDblClickEvent);
 
-        node.append("text")
-            .attr("dx", 18)
-            .attr("dy", ".35em")
-            .attr("class", "label")
-            .text(function (d) {
-                return d.type
-            });
-
-
+        //start must be called to initiate references used in line creation
         force.start();
         link = link.data(links, function (d) {
             return d.id;
@@ -189,6 +180,8 @@ d3.json("../data/clusterTopology.json", function (error, json) {
                 return d.id;
             })
             .on("mousedown", lineMouseDownEvent);
+
+        return node;
     }
 
     function lineBreakNodeDblClickEvent(d) {
@@ -214,6 +207,10 @@ d3.json("../data/clusterTopology.json", function (error, json) {
 
                 removeLinks(d);
                 exitLinks();
+
+                //remove node from children list of his parent
+                var children = d.parent.children;
+                children.splice(children.indexOf(d), 1);
 
                 nodes.splice(nodes.indexOf(d), 1);
                 exitNodes();
