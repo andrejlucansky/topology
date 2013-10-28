@@ -193,7 +193,7 @@
             "name" : "Router 4",
             "type" : "router",
             "role" : "neutral",
-            "id" : "30"
+            "id" : "30",
             "children": [
                 {
                     "name" : "Computer 1",

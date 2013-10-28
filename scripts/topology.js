@@ -1,220 +1,162 @@
-d3.json("../data/collabsibleTopology.json", function (error, json) {
-    var nodes = json.nodes;
-    var links = json.links;
-    var width = 800;
-    var height = 800;
+var width = 800,
+    height = 800,
+    nodeSize = 32,
+    lineBreakNodeSize = 10,
+    root;
 
-    var nodeSize = 32;
-    var lineBreakNodeSize = 10;
+var imagePath = "../images/",
+    imageType = ".png";
 
-    //generate unique id for each node
-    nodes.forEach(function (n) {
-        n.id = generateId();
-        n.size = {
-            "width" : nodeSize,
-            "height" : nodeSize
-        };
-        //set every router as his own parent
-        if(n.type == "router")
-            n.parent = n;
-    });
+var svg = d3.select("body")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height);
 
-    //generate unique id for each opposite direction link and add the link
+
+var force = d3.layout.force()
+                    .size([width, height])
+                    .on("tick", tick)
+                    .on("end", end)
+                    .linkDistance(80)
+                    .charge(-500);
+
+var link = svg.selectAll(".link"),
+    node = svg.selectAll(".node"),
+    router = svg.selectAll(".router");
+
+var nodes,
+    links;
+
+d3.json("../data/clusterTopologyTree.json", function (json) {
+    root = json;
+    update();
+
+    //TODO connect router nodes
+});
+
+function findNodeById(id){
+    for(var i = 0; i < nodes.length; i++){
+        if(nodes[i].id == id)
+            return nodes[i];
+    }
+}
+
+function update(){
+    nodes = getChildren(root),
+    links = d3.layout.tree().links(nodes);
+
     links.forEach(function (l) {
+        //create unique id for each opposite direction link
         l.id = generateId();
         //create link in opposite direction
-        links.push({"source": l.target, "target": l.source, "type": "upload", "id": generateId()});
+        links.push({"source": l.target, "target": l.source, "type": "computerToRouter", "id": generateId()});
     });
 
-    var svg = d3.select("body").append("svg")
-        .attr("width", width)
-        .attr("height", height);
+    //add links which are between routers
+    root.links.forEach(function(l){
+        var source =  findNodeById(l.source),
+            target = findNodeById(l.target);
 
-    var force = d3.layout.force().nodes(nodes).links(links).size([width, height])
-        .on("tick", tick)
-        .on("end", end)
-        .linkDistance(80)
-        .charge(-500)
+        links.push({"source": source, "target": target, "type": l.type, "id": generateId()});
+        links.push({"source": target, "target": source, "type": l.type, "id": generateId()});
+    })
+
+    force.nodes(nodes)
+        .links(links)
         .start();
 
-    //create parent-child relationship in tree
-    links.forEach(function(l){
-        if(l.source.type  == "router" && l.target.type != "router"){
-            l.target.parent = l.source;
-            l.source.children.push(l.target);
-        }
-    });
+    link = link.data(links,function(d) {return d.id;});
 
+    link.exit().remove();
+
+    link.enter()
+        .insert("line", ".node")
+        .attr("class", "link")
+        .attr("sourceid", function(d) {return d.source.index;})
+        .attr("targetid", function(d) {return d.target.index;})
+        .attr("id", function(d) {return d.id;})
+        .on("mousedown", lineMouseDownEvent);
+
+    node = node.data(nodes,function(d) {return d.id;});
+
+    node.exit().remove();
+
+    var group = node.enter()
+        .append("g")
+        .attr("class", function(d){return "node " + d.type})
+        .attr("index", function(d) {return d.index;})
+        .attr("id", function(d) {return d.id;})
+        .call(nodeDrag)
+        .on("dblclick", lineBreakNodeDblClickEvent);
+
+       group.append("image")
+        .attr("xlink:href", function(d) {return imagePath + d.type + imageType;})
+        .attr("x",  function(d){ return -(d.size.width/2);})
+        .attr("y",  function(d){ return -(d.size.height/2);})
+        .attr("width", function(d){ return d.size.width;})
+        .attr("height", function(d){ return d.size.height;});
+
+       group.append("text")
+        .attr("dx", 18)
+        .attr("dy", ".35em")
+        .attr("class", "label")
+        .text(function(d) {return d.name});
+
+        //bind doubleclick for routers to be collabsible
+        svg.selectAll(".router").on("dblclick", routerNodeDblClickEvent);
+}
+
+function  getChildren(root){
+    var nodes = [], i = 0;
+
+    function recurse(node) {
+        if (node.children) node.children.forEach(recurse);
+        //TODO temporary id assignment, should be omitted after json will be fetched from the database
+        if (/*!node.id*/ node.type != "router") node.id = generateId();
+        if(!node.size) node.size = {"width" : nodeSize, "height" : nodeSize};
+        nodes.push(node);
+    }
+
+    recurse(root);
+
+    //remove root node
+    nodes.splice(nodes.indexOf(root),1);
+    return nodes;
+}
+
+    //TODO refactor
     var nodeDrag = force.drag()
         .on("dragstart", function (d) {
             d.fixed = true;
             d3.select(this).classed("fixed", true);
         });
 
-    //straight lines
-    var link = svg.selectAll(".link").data(links,function (d) {
-        return d.id;
-    }).enter().append("line")
-        .attr("class", "link")
-        .attr("sourceid", function (d) {
-            return d.source.index;
-        })
-        .attr("targetid", function (d) {
-            return d.target.index;
-        })
-        .attr("id", function (d) {
-            return d.id;
-        })
-        .on("mousedown", lineMouseDownEvent);
-
-    //Nodes represented by images
-    var node = svg.selectAll(".node").data(nodes,function (d) {
-        return d.id;
-    }).enter().append("g")
-        .attr("class", function(d){return "node " + d.type})
-        .attr("index", function (d) {
-            return d.index;
-        })
-        .attr("id", function (d) {
-            return d.id;
-        })
-        .call(nodeDrag);
-
-    node.append("image")
-        .attr("xlink:href", function (d) {
-            return d.image;
-        })
-        .attr("x",  function(d){ return -(d.size.width/2);})
-        .attr("y",  function(d){ return -(d.size.height/2);})
-        .attr("width", function(d){ return d.size.width;})
-        .attr("height", function(d){ return d.size.height;});
-
-    node.append("text")
-        .attr("dx", 18)
-        .attr("dy", ".35em")
-        .attr("class", "label")
-        .text(function (d) {
-            return d.type
-        });
-
-    var router = svg.selectAll(".router").on("dblclick", routerNodeDblClickEvent);
-
     function routerNodeDblClickEvent(d) {
         if (!d3.event.defaultPrevented) {
-            if (d.children.length > 0) {
-                d.children.forEach(function(n){
-                    nodes.splice(nodes.indexOf(n),1);
-                });
+            if (d.children) {
                 d._children = d.children;
-                d.children = [];
-
-                d._children.forEach(function(ch){
-                    removeLinks(ch);
-                });
-
-                exitNodes();
-                exitLinks();
-                update();
-
+                d.children = null;
             } else {
                 d.children = d._children;
-                d._children = [];
-                d.children.forEach(function(n){
-                    nodes.push(n);
-
-                    //TODO toto neplati pre line break uzly
-                    links.push({"source": d, "target": n, "type": "upload", "id": generateId()});
-                    links.push({"source": n, "target": d, "type": "upload", "id": generateId()});
-                });
-                update().append("text")
-                    .attr("dx", 18)
-                    .attr("dy", ".35em")
-                    .attr("class", "label")
-                    .text(function (d) {
-                        return d.name;
-                    });
+                d._children = null;
             }
+            update();
         }
     };
 
-    function update(){
-        node = node.data(nodes, function (d) {
-            return d.id;
-        });
-
-        //add new nodes
-        group = node.enter().append("g")
-            .attr("class", function(d){return "node " + d.type})
-            .attr("index", function (d) {
-                return d.index;
-            })
-            .attr("id", function (d) {
-                return d.id;
-            })
-            .call(nodeDrag)
-            .append("image")
-            .attr("xlink:href", function (d) {
-                return d.image;
-            })
-            .attr("x", function(d){ return -(d.size.width/2);})
-            .attr("y", function(d){ return -(d.size.width/2);})
-            .attr("width", function(d){ return d.size.width;})
-            .attr("height", function(d){ return d.size.height;})
-            .on("dblclick", lineBreakNodeDblClickEvent);
-
-        //start must be called to initiate references used in line creation
-        force.start();
-        link = link.data(links, function (d) {
-            return d.id;
-        });
-
-        link.enter().insert("line", ".node")
-            .attr("class", "link")
-            .attr("sourceid", function (d) {
-                return d.source.index;
-            })
-            .attr("targetid", function (d) {
-                return d.target.index;
-            })
-            .attr("id", function (d) {
-                return d.id;
-            })
-            .on("mousedown", lineMouseDownEvent);
-
-        return node;
-    }
-
     function lineBreakNodeDblClickEvent(d) {
-            var nodeLinks = [];
-            links.forEach(function (l) {
-                if (l.source == d)
-                    nodeLinks.push(l);
-            });
 
-                links.push({
-                    "source": nodeLinks[0].target,
-                    "target": nodeLinks[1].target,
-                    "type": "upload",
-                    "id": generateId()
-                });
+        //remove node from parental children list
+        d.parent.children.splice(d.parent.children.indexOf(d), 1);
 
-                links.push({
-                    "source": nodeLinks[1].target,
-                    "target": nodeLinks[0].target,
-                    "type": "upload",
-                    "id": generateId()
-                });
+        //move all children from node to parent
+        //change parent of all children to their new parent
+        d.children.forEach(function(n){
+            d.parent.children.push(n);
+            n.parent = d.parent;
+        });
 
-                removeLinks(d);
-                exitLinks();
-
-                //remove node from children list of his parent
-                var children = d.parent.children;
-                children.splice(children.indexOf(d), 1);
-
-                nodes.splice(nodes.indexOf(d), 1);
-                exitNodes();
-                update();
+        update();
     };
 
     function lineMouseDownEvent(d) {
@@ -223,61 +165,37 @@ d3.json("../data/collabsibleTopology.json", function (error, json) {
         var x = coordinates[0];
         var y = coordinates[1];
 
+        //parent is set to node closest to the router
         var n = {
-            "type": "invisible",
-            "image": "../images/drag.png",
+            "name" : null,
+            "type": "lineBreak",
+            "role" : null,
+            "id": generateId(),
             "x": x,
             "y": y,
             "fixed": true,
-            "id": generateId(),
-            "parent" : d.source.parent,
+            "parent" : d.source,
+            "children" : [d.target],
             "size" : {
                 "width" : lineBreakNodeSize,
                 "height" : lineBreakNodeSize
             }
         };
 
-        nodes.push(n);
-        links.push({"source": d.source, "target": n, "type": "upload", "id": generateId()});
-        links.push({"source": n, "target": d.target, "type": "upload", "id": generateId()});
-        links.push({"source": d.target, "target": n, "type": "upload", "id": generateId()});
-        links.push({"source": n, "target": d.source, "type": "upload", "id": generateId()});
-
         //add node as child to his parent router
-        d.source.parent.children.push(n);
+        d.source.children.push(n);
 
-        links.forEach(function (l) {
-            if (l.source == d.target && l.target == d.source)
-                links.splice(links.indexOf(l), 1);
-        });
-        links.splice(links.indexOf(d), 1);
-        exitLinks();
+        //remove old leaf from old parent
+        d.source.children.splice(d.source.children.indexOf(d.target), 1);
+
+        //set parent of old leaf to this node
+        d.target.parent = n;
+
         update();
         simulate(document.getElementById(n.id), "mousedown", {pointerX: d3.mouse(this)[0], pointerY: d3.mouse(this)[1]});
     };
 
-    function removeLinks(n){
-        var i = 0;
-        while(i < links.length){
-            if(links[i].source == n || links[i].target == n)
-                links.splice(links.indexOf(links[i]), 1);
-            else
-                i++;
-        }
-    }
-
-    function exitNodes(){
-        node.data(nodes,function (d) {
-            return d.id;
-        }).exit().remove();
-    }
-
-    function exitLinks(){
-        link.data(links,function (d) {
-            return d.id;
-        }).exit().remove();
-    }
-
+    //TODO lines should come only from router to leaf
     function tick() {
         node.attr("transform", function (d) {
             return "translate(" + d.x + "," + d.y + ")";
@@ -452,4 +370,3 @@ d3.json("../data/collabsibleTopology.json", function (error, json) {
                 i++;
         }
     }
-});
