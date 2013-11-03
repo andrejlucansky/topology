@@ -27,10 +27,19 @@ var link = svg.selectAll(".link"),
 var nodes,
     links;
 
-d3.json("../data/clusterTopologyTree.json", function (json) {
+d3.json("../data/clusterTopologyTreePresentation.json", function (json) {
     root = json;
     update();
 });
+
+/*d3.json("http://147.251.43.124:8080/restdemo/nodes", function(json){
+ console.log(json);
+ alert("yo");
+ });*/
+
+/*type: computer, server, mobile
+ role : reflector, wolf, sheep, iba koncove uzly */
+
 
 function update() {
     nodes = getChildren(root),
@@ -54,6 +63,7 @@ function update() {
         links.push({"source": target, "target": source, "type": l.type, "id": generateId()});
     })
 
+    //start simulation
     force.nodes(nodes)
         .links(links)
         .start();
@@ -68,10 +78,10 @@ function update() {
         .insert("line", ".node")
         .attr("class", "link")
         .attr("sourceid", function (d) {
-            return d.source.index;
+            return d.source.id;
         })
         .attr("targetid", function (d) {
-            return d.target.index;
+            return d.target.id;
         })
         .attr("id", function (d) {
             return d.id;
@@ -98,7 +108,25 @@ function update() {
         .attr("id", function (d) {
             return d.id;
         })
-        .call(nodeDrag)
+        .call(force.drag()
+            .on("dragstart", function(d){
+                d.fixed = true;
+                d.originalX = d.x;
+                d.originalY = d.y;
+                d3.select(this).classed("fixed", true);
+            })
+            .on("drag", function(d){
+                //for routers, compute coordinates of their children if they are hidden
+                if(d.type == "router" && d.children == null) {
+                    d._children.forEach(function(ch){
+                       setPosition(ch, d3.event);
+                       ch.x += d3.event.dx;
+                       ch.y += d3.event.dy;
+                       ch.px += d3.event.dx;
+                       ch.py += d3.event.dy;
+                    });
+                }})
+        )
         .on("dblclick", lineBreakNodeDblClickEvent);
 
     group.append("image")
@@ -130,6 +158,17 @@ function update() {
     svg.selectAll(".router").on("dblclick", routerNodeDblClickEvent);
 }
 
+function setPosition(node, event){
+    if(node.children)
+    node.children.forEach(function(ch){
+        setPosition(ch, event);
+        ch.x += event.dx;
+        ch.y += event.dy;
+        ch.px += event.dx;
+        ch.py += event.dy;
+    })
+}
+
 function getChildren(root) {
     var nodes = [], i = 0;
 
@@ -148,13 +187,6 @@ function getChildren(root) {
     return nodes;
 }
 
-//TODO refactor
-var nodeDrag = force.drag()
-    .on("dragstart", function (d) {
-        d.fixed = true;
-        d3.select(this).classed("fixed", true);
-    });
-
 function routerNodeDblClickEvent(d) {
     if (!d3.event.defaultPrevented) {
         if (d.children) {
@@ -168,8 +200,12 @@ function routerNodeDblClickEvent(d) {
     }
 };
 
-//TODO router links
 function lineMouseDownEvent(d) {
+
+    //Do not react on router links
+    if (d.type == "routerToRouter")
+        return;
+
     //create drag node
     var coordinates = d3.mouse(this);
     var x = coordinates[0];
@@ -228,21 +264,21 @@ function tick() {
 
     // this part of code is working for straight lines between nodes
     link.attr("x1", function (d) {
-        return computeCoordinates(d.source.x, d.source.y, d.target.x, d.target.y, {"direction": "right", "type" : d.type})[0];
+        return computeCoordinates(d.source.x, d.source.y, d.target.x, d.target.y, {"direction": "right", "type": d.type})[0];
     })
         .attr("y1", function (d) {
-            return computeCoordinates(d.source.x, d.source.y, d.target.x, d.target.y, {"direction": "right", "type" : d.type})[1];
+            return computeCoordinates(d.source.x, d.source.y, d.target.x, d.target.y, {"direction": "right", "type": d.type})[1];
         })
         .attr("x2", function (d) {
-            return  computeCoordinates(d.target.x, d.target.y, d.source.x, d.source.y, {"direction": "left", "type" : d.type})[0];
+            return  computeCoordinates(d.target.x, d.target.y, d.source.x, d.source.y, {"direction": "left", "type": d.type})[0];
         })
         .attr("y2", function (d) {
-            return  computeCoordinates(d.target.x, d.target.y, d.source.x, d.source.y, {"direction": "left", "type" : d.type})[1];
+            return  computeCoordinates(d.target.x, d.target.y, d.source.x, d.source.y, {"direction": "left", "type": d.type})[1];
         })
         .style("stroke", function (d) {
             if (d.type == "outcoming")
                 return "#FF2E83";
-            else if(d.type == "incoming")
+            else if (d.type == "incoming")
                 return "#339FFF";
             else
                 return "#C73EFF";
@@ -255,8 +291,8 @@ function computeCoordinates(a1, a2, b1, b2, options) {
     var c1, c2, new_c1, new_c2;
 
     //changing side based on direction of the traffic(type = incoming/outcoming)
-    if(options.type == "incoming"){
-        if(options.direction == "right")
+    if (options.type == "incoming") {
+        if (options.direction == "right")
             options.direction = "left";
         else
             options.direction = "right";
