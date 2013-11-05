@@ -2,16 +2,28 @@ var width = window.innerWidth - 20,
     height = window.innerHeight - 20,
     nodeSize = 32,
     lineBreakNodeSize = 10,
+    defaultLineNormalLength = 2,
+    scaledLineNormalLength = defaultLineNormalLength,
+    scale = 1,
+    translate = [0,0],
     root;
 
 var imagePath = "../images/",
     imageType = ".png";
 
+var x = d3.scale.linear()
+    .domain([0, width])
+    .range([0, width]);
+
+var y = d3.scale.linear()
+    .domain([0, height])
+    .range([0, height]);
+
 var svg = d3.select("body")
     .append("svg")
     .attr("width", width)
-    .attr("height", height);
-
+    .attr("height", height)
+    .call(d3.behavior.zoom().x(x).y(y).scaleExtent([1, 10]).on("zoom", zoom)).on("dblclick.zoom", null);
 
 var force = d3.layout.force()
     .size([width, height])
@@ -27,6 +39,19 @@ var link = svg.selectAll(".link"),
 var nodes,
     links;
 
+//test of linebreak node
+d3.selectAll("svg").on("mousemove", handleMouseMove).on("dblclick", test);
+
+function handleMouseMove(e){
+    d3.selectAll("#suradnice").html(d3.mouse(this)[0] + " " +d3.mouse(this)[1]);
+};
+
+function test(){
+    //d3.event.stopPropagation();
+
+    svg.insert("g", ".link").append("circle").attr("cx", d3.mouse(this)[0]).attr("cy", d3.mouse(this)[1]).attr("r", 5).attr("class", "test");
+}
+
 d3.json("../data/clusterTopologyTreePresentation.json", function (json) {
     root = json;
     update();
@@ -39,7 +64,6 @@ d3.json("../data/clusterTopologyTreePresentation.json", function (json) {
 
 /*type: computer, server, mobile
  role : reflector, wolf, sheep, iba koncove uzly */
-
 
 function update() {
     nodes = getChildren(root),
@@ -76,7 +100,7 @@ function update() {
 
     link.enter()
         .insert("line", ".node")
-        .attr("class", "link")
+        .attr("class", function(d){return "link " + d.type;})
         .attr("sourceid", function (d) {
             return d.source.id;
         })
@@ -85,11 +109,11 @@ function update() {
         })
         .attr("id", function (d) {
             return d.id;
-        })
-        .attr("type", function (d) {
-            return d.type;
-        })
-        .on("mousedown", lineMouseDownEvent);
+        });
+
+    //bind click links from router to computer
+    svg.selectAll(".incoming").on("mousedown", lineMouseDownListener);
+    svg.selectAll(".outcoming").on("mousedown", lineMouseDownListener);
 
     node = node.data(nodes, function (d) {
         return d.id;
@@ -108,26 +132,30 @@ function update() {
         .attr("id", function (d) {
             return d.id;
         })
-        .call(force.drag()
+        .call(d3.behavior.drag()
             .on("dragstart", function(d){
                 d.fixed = true;
-                d.originalX = d.x;
-                d.originalY = d.y;
-                d3.select(this).classed("fixed", true);
+                d3.select(this).classed("fixed", true)
+                d3.event.sourceEvent.stopPropagation();
             })
             .on("drag", function(d){
+                d.px += d3.event.dx / scale;
+                d.py += d3.event.dy / scale;
+                d.x += d3.event.dx / scale;
+                d.y += d3.event.dy / scale;
                 //for routers, compute coordinates of their children if they are hidden
                 if(d.type == "router" && d.children == null) {
                     d._children.forEach(function(ch){
                        setPosition(ch, d3.event);
-                       ch.x += d3.event.dx;
-                       ch.y += d3.event.dy;
-                       ch.px += d3.event.dx;
-                       ch.py += d3.event.dy;
+                       ch.x += d3.event.dx / scale;
+                       ch.y += d3.event.dy / scale;
+                       ch.px += d3.event.dx / scale;
+                       ch.py += d3.event.dy / scale;
                     });
-                }})
-        )
-        .on("dblclick", lineBreakNodeDblClickEvent);
+                }
+                force.resume()
+            })
+        );
 
     group.append("image")
         .attr("xlink:href", function (d) {
@@ -155,7 +183,9 @@ function update() {
         });
 
     //bind doubleclick for routers to be collabsible
-    svg.selectAll(".router").on("dblclick", routerNodeDblClickEvent);
+    svg.selectAll(".router").on("dblclick", routerNodeDblClickListener);
+    //bind doubleclick for line breaks to disappear
+    svg.selectAll(".lineBreak").on("dblclick", lineBreakNodeDblClickListener);
 }
 
 function setPosition(node, event){
@@ -187,7 +217,18 @@ function getChildren(root) {
     return nodes;
 }
 
-function routerNodeDblClickEvent(d) {
+function zoom(){
+    scale = d3.event.scale;
+    translate = d3.event.translate;
+    scaledLineNormalLength = defaultLineNormalLength / scale;
+    svg.selectAll(".test").attr("transform",
+        "translate(" + translate + ")"
+            + " scale(" + scale + ")");
+
+    tick();
+}
+
+function routerNodeDblClickListener(d) {
     if (!d3.event.defaultPrevented) {
         if (d.children) {
             d._children = d.children;
@@ -200,16 +241,16 @@ function routerNodeDblClickEvent(d) {
     }
 };
 
-function lineMouseDownEvent(d) {
+function lineMouseDownListener(d) {
+    d3.event.stopPropagation();
 
-    //Do not react on router links
-    if (d.type == "routerToRouter")
-        return;
-
-    //create drag node
     var coordinates = d3.mouse(this);
-    var x = coordinates[0];
-    var y = coordinates[1];
+
+    d3.selectAll("#click").html("Click pos: "+ coordinates[0] + " " + coordinates[1]);
+
+    //compute coordinates of new node, taking into account pane translate vector and zoom scale
+    var xx = (coordinates[0] - translate[0]) / scale;
+    var yy = (coordinates[1] - translate[1]) / scale;
 
     //parent is set to node closest to the router
     var n = {
@@ -217,8 +258,8 @@ function lineMouseDownEvent(d) {
         "type": "lineBreak",
         "role": null,
         "id": generateId(),
-        "x": x,
-        "y": y,
+        "x": xx,
+        "y": yy,
         "fixed": true,
         "parent": d.source,
         "children": [d.target],
@@ -241,7 +282,7 @@ function lineMouseDownEvent(d) {
     simulate(document.getElementById(n.id), "mousedown", {pointerX: d3.mouse(this)[0], pointerY: d3.mouse(this)[1]});
 };
 
-function lineBreakNodeDblClickEvent(d) {
+function lineBreakNodeDblClickListener(d) {
 
     //remove node from parental children list
     d.parent.children.splice(d.parent.children.indexOf(d), 1);
@@ -256,11 +297,8 @@ function lineBreakNodeDblClickEvent(d) {
     update();
 };
 
-//TODO refactor
 function tick() {
-    node.attr("transform", function (d) {
-        return "translate(" + d.x + "," + d.y + ")";
-    });
+    node.attr("transform", function(d){  return "translate(" + x(d.x) + "," + y(d.y) + ")";});
 
     // this part of code is working for straight lines between nodes
     link.attr("x1", function (d) {
@@ -310,7 +348,7 @@ function computeCoordinates(a1, a2, b1, b2, options) {
     // pytagorova veta na vypocet dlzky ab
     var ab_squared = Math.pow((b1 - a1), 2) + Math.pow((b2 - a2), 2);
 
-    var ac = 2;
+    var ac = scaledLineNormalLength;
     var ac_squared = Math.pow(ac, 2);
     var ratio = ac_squared / ab_squared;
 
@@ -324,7 +362,7 @@ function computeCoordinates(a1, a2, b1, b2, options) {
     else
         new_c2 = -(Math.sqrt(Math.pow((c2 - a2), 2) * ratio)) + a2;
 
-    return [new_c1, new_c2];
+    return [x(new_c1), y(new_c2)];
 }
 
 function findNodeById(id) {
