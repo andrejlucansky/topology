@@ -39,19 +39,6 @@ var link = svg.selectAll(".link"),
 var nodes,
     links;
 
-//test of linebreak node
-d3.selectAll("svg").on("mousemove", handleMouseMove).on("dblclick", test);
-
-function handleMouseMove(e){
-    d3.selectAll("#suradnice").html(d3.mouse(this)[0] + " " +d3.mouse(this)[1]);
-};
-
-function test(){
-    //d3.event.stopPropagation();
-
-    svg.insert("g", ".link").append("circle").attr("cx", d3.mouse(this)[0]).attr("cy", d3.mouse(this)[1]).attr("r", 5).attr("class", "test");
-}
-
 d3.json("../data/clusterTopologyTreePresentation.json", function (json) {
     root = json;
     update();
@@ -245,8 +232,6 @@ function lineMouseDownListener(d) {
     d3.event.stopPropagation();
 
     var coordinates = d3.mouse(this);
-
-    d3.selectAll("#click").html("Click pos: "+ coordinates[0] + " " + coordinates[1]);
 
     //compute coordinates of new node, taking into account pane translate vector and zoom scale
     var xx = (coordinates[0] - translate[0]) / scale;
