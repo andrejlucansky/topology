@@ -8,6 +8,25 @@ var width = window.innerWidth - 20,
     translate = [0,0],
     root;
 
+//data refreshing interval 60 seconds
+var refreshInterval = 60000;
+
+var colors = {
+    "red" : {
+        "start" : 255,
+        "end" : 255
+    },
+    "green": {
+        "start" : 70,
+        "end" : 190
+    },
+    "blue": {
+        "start" : 46,
+        "end" : 106
+    },
+    "intervals" : 5
+};
+
 var imagePath = "../images/",
     imageType = ".png";
 
@@ -39,9 +58,10 @@ var link = svg.selectAll(".link"),
 var nodes,
     links;
 
-d3.json("../data/clusterTopologyTreePresentation.json", function (json) {
+d3.json("../data/clusterTopologyTreePresentationOld.json", function (json) {
     root = json;
     update();
+    paintLines();
 });
 
 /*d3.json("http://147.251.43.124:8080/restdemo/nodes", function(json){
@@ -70,8 +90,8 @@ function update() {
         var source = findNodeById(l.source),
             target = findNodeById(l.target);
 
-        links.push({"source": source, "target": target, "type": l.type, "id": generateId()});
-        links.push({"source": target, "target": source, "type": l.type, "id": generateId()});
+        links.push({"source": source, "target": target, "type": "routerToRouter", "id": generateId()});
+        links.push({"source": target, "target": source, "type": "routerToRouter", "id": generateId()});
     })
 
     //start simulation
@@ -101,6 +121,16 @@ function update() {
     //bind click links from router to computer
     svg.selectAll(".incoming").on("mousedown", lineMouseDownListener);
     svg.selectAll(".outcoming").on("mousedown", lineMouseDownListener);
+
+    links.forEach(function(d){
+        //activate animation
+        d.animation = new Animation();
+        d.animation.speed = Math.floor(Math.random()*1000);
+
+        //color lines
+        d.colorScale = new RGBScale(colors);
+    })
+    slide();
 
     node = node.data(nodes, function (d) {
         return d.id;
@@ -471,5 +501,81 @@ function testArrayRemove() {
         }
         else
             i++;
+    }
+}
+/*
+function slide(){
+    var l = d3.select(this);
+    l.interval = window.setInterval(function(){
+        l.style("stroke-dasharray", function(d){
+            return d.animation.start(this, d.type);
+        })
+    }, l.datum().animation.speed)
+}*/
+
+function slide(){
+    link.each(function(d){
+        var l = d3.select(this);
+        l.interval = window.setInterval(function(){
+            l.style("stroke-dasharray", function(d){
+                style = d.animation.start(this, d.type);
+                return style;
+            });
+        }, l.datum().animation.speed);
+    })
+}
+
+function paintLines(){
+    window.setInterval(function(){
+        //here, all variable data should be fetched periodically
+        //change colour based on trafic
+        link.style("stroke", function (d) {
+            var intervalIndex = Math.floor((/*d.load / d.bandwidth*/0.8) * colors.intervals);
+            return d.colorScale.paint(Math.min(Math.floor(Math.random()*10,4)));
+        });
+
+    },5000);
+}
+
+function Animation() {
+    this.step =  ["3,2","0,1,3,1","0,2,3,0","1,2,2,0","2,2,1,0"];
+    this.lastStep  = 4;
+    this.speed = 1000;
+
+    this.start = function(link, type){
+        return type == "incoming" ? this.in(link) : this.out(link);
+    }
+
+    this.out = function(link){
+        this.lastStep < 4 ? this.lastStep += 1 :this.lastStep = 0;
+        return this.step[this.lastStep];
+    };
+
+    this.in = function(link){
+        this.lastStep > 0 ? this.lastStep -= 1 :this.lastStep = 4;
+        return this.step[this.lastStep];
+    };
+}
+
+function RGBScale(colors){
+    this.red = new ColorScale(colors.red, colors.intervals);
+    this.green = new ColorScale(colors.green, colors.intervals);
+    this.blue = new ColorScale(colors.blue, colors.intervals);
+
+    this.paint = function(intervalIndex){
+        //console.log("rgb("+ this.red.color(intervalIndex) +"," + this.green.color(intervalIndex) + "," + this.blue.color(intervalIndex) +")");
+        return "rgb("+ this.red.color(intervalIndex) +"," + this.green.color(intervalIndex) + "," + this.blue.color(intervalIndex) +")";
+    }
+
+    function ColorScale(color, intervals){
+        this.start = color.start;
+        this.end = color.end;
+
+        this.intervalLength = function(){
+            return (this.end - this.start) / (intervals - 1);
+        }
+        this.color = function(intervalIndex){
+            return this.start + (this.intervalLength() * intervalIndex);
+        }
     }
 }

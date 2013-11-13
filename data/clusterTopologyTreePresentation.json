@@ -1,193 +1,226 @@
 {
-    "name" : "Network Topology",
-    "type" : "network",
-    "language" : "english",
     "children": [
         {
-            "name" : "Router 1",
-            "type" : "router",
-            "role" : "neutral",
             "id" : "0",
+            "topologyId" : "r_0",
+            "physicalRole" : "router",
+            "logicalRole" : null,
+            "name" : "Router 1",
+            "address4" : "147.251.0.1/24",
             "children": [
                 {
+                    "id" : "0",
+                    "topologyId" : "i_0",
+                    "physicalRole" : "computer",
+                    "logicalRole" : "wolf",
                     "name" : "Computer 1",
-                    "type" : "computer",
-                    "role" : "attacker",
-                    "id" : "1"
+                    "address4" : "147.251.0.10/24"
                 },
                 {
+                    "id" : "1",
+                    "topologyId" : "i_1",
+                    "physicalRole" : "computer",
+                    "logicalRole" : "wolf",
                     "name" : "Computer 2",
-                    "type" : "computer",
-                    "role" : "neutral",
-                    "id" : "2"
-                },
-                {
+                    "address4" : "147.251.0.11/24"
+                },                {
+                    "id" : "2",
+                    "topologyId" : "i_2",
+                    "physicalRole" : "computer",
+                    "logicalRole" : "wolf",
                     "name" : "Computer 3",
-                    "type" : "computer",
-                    "role" : "attacker",
-                    "id" : "3"
-                },
-                {
+                    "address4" : "147.251.0.12/24"
+                },                {
+                    "id" : "3",
+                    "topologyId" : "i_3",
+                    "physicalRole" : "computer",
+                    "logicalRole" : "wolf",
                     "name" : "Computer 4",
-                    "type" : "computer",
-                    "role" : "neutral",
-                    "id" : "4"
-                },
-                {
+                    "address4" : "147.251.0.13/24"
+                },                {
+                    "id" : "4",
+                    "topologyId" : "i_4",
+                    "physicalRole" : "computer",
+                    "logicalRole" : "wolf",
                     "name" : "Computer 5",
-                    "type" : "computer",
-                    "role" : "attacker",
-                    "id" : "5"
+                    "address4" : "147.251.0.14/24"
                 }
             ]
         },
         {
+            "id" : "1",
+            "topologyId" : "r_1",
+            "physicalRole" : "router",
+            "logicalRole" : null,
             "name" : "Router 2",
-            "type" : "router",
-            "role" : "neutral",
-            "id" : "11",
+            "address4" : "147.251.0.2/24",
             "children": [
                 {
-                    "name" : "Computer 1",
-                    "type" : "computer",
-                    "role" : "neutral",
-                    "id" : "12"
-                },
-                {
-                    "name" : "Computer 2",
-                    "type" : "computer",
-                    "role" : "attacker",
-                    "id" : "13"
-                },
-                {
-                    "name" : "Computer 3",
-                    "type" : "computer",
-                    "role" : "attacker",
-                    "id" : "14"
-                },
-                {
-                    "name" : "Computer 4",
-                    "type" : "computer",
-                    "role" : "neutral",
-                    "id" : "15"
-                }
-            ]
-        },
-        {
-            "name" : "Router 3",
-            "type" : "router",
-            "role" : "neutral",
-            "id" : "19",
-            "children": [
-                {
-                    "name" : "Computer 1",
-                    "type" : "computer",
-                    "role" : "neutral",
-                    "id" : "20"
-                },
-                {
-                    "name" : "Computer 2",
-                    "type" : "computer",
-                    "role" : "attacker",
-                    "id" : "21"
-                },
-                {
-                    "name" : "Computer 3",
-                    "type" : "computer",
-                    "role" : "neutral",
-                    "id" : "22"
-                },
-                {
-                    "name" : "Computer 4",
-                    "type" : "computer",
-                    "role" : "attacker",
-                    "id" : "23"
-                },
-                {
-                    "name" : "Computer 5",
-                    "type" : "computer",
-                    "role" : "attacker",
-                    "id" : "24"
-                },
-                {
+                    "id" : "5",
+                    "topologyId" : "i_5",
+                    "physicalRole" : "computer",
+                    "logicalRole" : "wolf",
                     "name" : "Computer 6",
-                    "type" : "computer",
-                    "role" : "neutral",
-                    "id" : "25"
-                },
-                {
+                    "address4" : "147.251.0.20/24"
+                },                {
+                    "id" : "6",
+                    "topologyId" : "i_6",
+                    "physicalRole" : "computer",
+                    "logicalRole" : "wolf",
                     "name" : "Computer 7",
-                    "type" : "computer",
-                    "role" : "attacker",
-                    "id" : "26"
-                },
-                {
+                    "address4" : "147.251.0.21/24"
+                },                {
+                    "id" : "7",
+                    "topologyId" : "i_7",
+                    "physicalRole" : "computer",
+                    "logicalRole" : "wolf",
                     "name" : "Computer 8",
-                    "type" : "computer",
-                    "role" : "neutral",
-                    "id" : "27"
-                },
-                {
+                    "address4" : "147.251.0.22/24"
+                },                {
+                    "id" : "8",
+                    "topologyId" : "i_8",
+                    "physicalRole" : "computer",
+                    "logicalRole" : "wolf",
                     "name" : "Computer 9",
-                    "type" : "computer",
-                    "role" : "attacker",
-                    "id" : "28"
-                },
-                {
-                    "name" : "Computer 10",
-                    "type" : "computer",
-                    "role" : "neutral",
-                    "id" : "29"
+                    "address4" : "147.251.0.23/24"
                 }
             ]
         },
         {
-            "name" : "Router 4",
-            "type" : "router",
-            "role" : "neutral",
-            "id" : "30",
+            "id" : "2",
+            "topologyId" : "r_2",
+            "physicalRole" : "router",
+            "logicalRole" : null,
+            "name" : "Router 3",
+            "address4" : "147.251.0.3/24",
             "children": [
                 {
-                    "name" : "Computer 1",
-                    "type" : "computer",
-                    "role" : "neutral",
-                    "id" : "31"
+                    "id" : "9",
+                    "topologyId" : "i_9",
+                    "physicalRole" : "computer",
+                    "logicalRole" : "wolf",
+                    "name" : "Computer 10",
+                    "address4" : "147.251.0.30/24"
+                },                {
+                    "id" : "10",
+                    "topologyId" : "i_10",
+                    "physicalRole" : "computer",
+                    "logicalRole" : "wolf",
+                    "name" : "Computer 11",
+                    "address4" : "147.251.0.31/24"
+                },                {
+                    "id" : "11",
+                    "topologyId" : "i_11",
+                    "physicalRole" : "computer",
+                    "logicalRole" : "wolf",
+                    "name" : "Computer 12",
+                    "address4" : "147.251.0.32/24"
+                },                {
+                    "id" : "12",
+                    "topologyId" : "i_12",
+                    "physicalRole" : "computer",
+                    "logicalRole" : "wolf",
+                    "name" : "Computer 13",
+                    "address4" : "147.251.0.33/24"
                 },
                 {
-                    "name" : "Computer 2",
-                    "type" : "computer",
-                    "role" : "neutral",
-                    "id" : "32"
+                    "id" : "13",
+                    "topologyId" : "i_13",
+                    "physicalRole" : "computer",
+                    "logicalRole" : "wolf",
+                    "name" : "Computer 14",
+                    "address4" : "147.251.0.34/24"
+                },                {
+                    "id" : "14",
+                    "topologyId" : "i_14",
+                    "physicalRole" : "computer",
+                    "logicalRole" : "wolf",
+                    "name" : "Computer 15",
+                    "address4" : "147.251.0.35/24"
+                },                {
+                    "id" : "15",
+                    "topologyId" : "i_15",
+                    "physicalRole" : "computer",
+                    "logicalRole" : "wolf",
+                    "name" : "Computer 16",
+                    "address4" : "147.251.0.36/24"
+                },                {
+                    "id" : "16",
+                    "topologyId" : "i_16",
+                    "physicalRole" : "computer",
+                    "logicalRole" : "wolf",
+                    "name" : "Computer 17",
+                    "address4" : "147.251.0.37/24"
                 },
                 {
-                    "name" : "Computer 3",
-                    "type" : "computer",
-                    "role" : "attacker",
-                    "id" : "33"
+                    "id" : "17",
+                    "topologyId" : "i_17",
+                    "physicalRole" : "computer",
+                    "logicalRole" : "wolf",
+                    "name" : "Computer 18",
+                    "address4" : "147.251.0.38/24"
+                },                {
+                    "id" : "18",
+                    "topologyId" : "i_18",
+                    "physicalRole" : "computer",
+                    "logicalRole" : "wolf",
+                    "name" : "Computer 19",
+                    "address4" : "147.251.0.39/24"
+                }
+            ]
+        },
+        {
+            "id" : "3",
+            "topologyId" : "r_3",
+            "physicalRole" : "router",
+            "logicalRole" : null,
+            "name" : "Router 4",
+            "address4" : "147.251.0.4/24",
+            "children": [
+                {
+                    "id" : "19",
+                    "topologyId" : "i_19",
+                    "physicalRole" : "computer",
+                    "logicalRole" : "wolf",
+                    "name" : "Computer 20",
+                    "address4" : "147.251.0.40/24"
+                },                {
+                    "id" : "20",
+                    "topologyId" : "i_20",
+                    "physicalRole" : "computer",
+                    "logicalRole" : "wolf",
+                    "name" : "Computer 21",
+                    "address4" : "147.251.0.41/24"
+                },                {
+                    "id" : "21",
+                    "topologyId" : "i_21",
+                    "physicalRole" : "computer",
+                    "logicalRole" : "wolf",
+                    "name" : "Computer 22",
+                    "address4" : "147.251.0.42/24"
                 }
             ]
         }
     ],
     "links" : [
-        {
-            "type" : "routerToRouter",
-            "source" : "0",
-            "target" : "11"
+        {   "id" : "0",
+            "source" : "r_0",
+            "target" : "r_1"
         },
         {
-            "type" : "routerToRouter",
-            "source" : "11",
-            "target" : "19"
+            "id" : "1",
+            "source" : "r_1",
+            "target" : "r_2"
         },
         {
-            "type" : "routerToRouter",
-            "source" : "19",
-            "target" : "30"
+            "id" : "2",
+            "source" : "r_2",
+            "target" : "r_3"
         },
         {
-            "type" : "routerToRouter",
-            "source" : "30",
-            "target" : "11"
+            "id" : "3",
+            "source" : "r_3",
+            "target" : "r_2"
         }
     ]
 }
