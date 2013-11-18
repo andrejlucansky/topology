@@ -8,6 +8,9 @@ var width = window.innerWidth - 20,
     translate = [0,0],
     root;
 
+var connectionString = "http://147.251.43.124:8080/visualisationdata/network/topology";
+//var connectionString = "../data/clusterTopologyTreePresentation.json";
+
 //data refreshing interval 60 seconds
 var refreshInterval = 60000;
 
@@ -28,7 +31,8 @@ var colors = {
 };
 
 var imagePath = "../images/",
-    imageType = ".png";
+    imageType = "";//"_transparent",
+    imageFormat = ".png";//".svg";
 
 var x = d3.scale.linear()
     .domain([0, width])
@@ -58,16 +62,11 @@ var link = svg.selectAll(".link"),
 var nodes,
     links;
 
-d3.json("../data/clusterTopologyTreePresentationOld.json", function (json) {
+d3.json(connectionString, function (json) {
     root = json;
     update();
-    paintLines();
+    //paintLines();
 });
-
-/*d3.json("http://147.251.43.124:8080/restdemo/nodes", function(json){
- console.log(json);
- alert("yo");
- });*/
 
 /*type: computer, server, mobile
  role : reflector, wolf, sheep, iba koncove uzly */
@@ -78,11 +77,11 @@ function update() {
 
     links.forEach(function (l) {
         //create unique id for each opposite direction link
-        l.id = generateId();
+        l.topologyId = generateId();
         //set type of original link to outcoming/upload
         l.type = "outcoming";
         //create link in opposite direction
-        links.push({"source": l.source, "target": l.target, "type": "incoming", "id": generateId()});
+        links.push({"source": l.source, "target": l.target, "type": "incoming", "topologyId": generateId()});
     });
 
     //add links which are between routers
@@ -90,9 +89,14 @@ function update() {
         var source = findNodeById(l.source),
             target = findNodeById(l.target);
 
-        links.push({"source": source, "target": target, "type": "routerToRouter", "id": generateId()});
-        links.push({"source": target, "target": source, "type": "routerToRouter", "id": generateId()});
+        links.push({"source": source, "target": target, "type": "routerToRouter", "topologyId": generateId()});
+        //links.push({"source": target, "target": source, "type": "routerToRouter", "topologyId": generateId()});
     })
+
+    //add invisible link overlay on all links
+    links.forEach(function(d){
+        links.push({"source": d.source, "target": d.target, "type": "invisible " + d.type, "topologyId": generateId()});
+    });
 
     //start simulation
     force.nodes(nodes)
@@ -100,7 +104,7 @@ function update() {
         .start();
 
     link = link.data(links, function (d) {
-        return d.id;
+        return d.topologyId;
     });
 
     link.exit().remove();
@@ -109,13 +113,13 @@ function update() {
         .insert("line", ".node")
         .attr("class", function(d){return "link " + d.type;})
         .attr("sourceid", function (d) {
-            return d.source.id;
+            return d.source.topologyId;
         })
         .attr("targetid", function (d) {
-            return d.target.id;
+            return d.target.topologyId;
         })
         .attr("id", function (d) {
-            return d.id;
+            return d.topologyId;
         });
 
     //bind click links from router to computer
@@ -133,7 +137,7 @@ function update() {
     slide();
 
     node = node.data(nodes, function (d) {
-        return d.id;
+        return d.topologyId;
     });
 
     node.exit().remove();
@@ -141,13 +145,13 @@ function update() {
     var group = node.enter()
         .append("g")
         .attr("class", function (d) {
-            return "node " + d.type
+            return "node " + d.physicalRole
         })
         .attr("index", function (d) {
             return d.index;
         })
         .attr("id", function (d) {
-            return d.id;
+            return d.topologyId;
         })
         .call(d3.behavior.drag()
             .on("dragstart", function(d){
@@ -161,7 +165,7 @@ function update() {
                 d.x += d3.event.dx / scale;
                 d.y += d3.event.dy / scale;
                 //for routers, compute coordinates of their children if they are hidden
-                if(d.type == "router" && d.children == null) {
+                if(d.physicalRole == "router" && d.children == null) {
                     d._children.forEach(function(ch){
                        setPosition(ch, d3.event);
                        ch.x += d3.event.dx / scale;
@@ -176,7 +180,7 @@ function update() {
 
     group.append("image")
         .attr("xlink:href", function (d) {
-            return imagePath + d.type + imageType;
+            return imagePath + d.physicalRole + imageType + imageFormat;
         })
         .attr("x", function (d) {
             return -(d.size.width / 2);
@@ -193,10 +197,31 @@ function update() {
 
     group.append("text")
         .attr("dx", 18)
-        .attr("dy", ".35em")
+        .attr("dy", function(d){ return -(d.size.height / 8)})
         .attr("class", "label")
         .text(function (d) {
-            return d.name
+            if(d.name == null && d.address4 == null)
+                return "";
+            else
+                return d.name + "/" + d.address4;
+        });
+
+    group.append("image")
+        .attr("xlink:href", function (d) {
+            if(d.logicalRole != null)
+                return imagePath + d.logicalRole + imageFormat;
+        })
+        .attr("x", function (d) {
+            return d.size.width / 2;
+        })
+        .attr("y", function (d) {
+            return d.size.height / 32;
+        })
+        .attr("width", function (d) {
+            return d.size.width / 2 ;
+        })
+        .attr("height", function (d) {
+            return d.size.height / 2;
         });
 
     //bind doubleclick for routers to be collabsible
@@ -209,10 +234,10 @@ function setPosition(node, event){
     if(node.children)
     node.children.forEach(function(ch){
         setPosition(ch, event);
-        ch.x += event.dx;
-        ch.y += event.dy;
-        ch.px += event.dx;
-        ch.py += event.dy;
+        ch.x += event.dx / scale;
+        ch.y += event.dy / scale;
+        ch.px += event.dx / scale;
+        ch.py += event.dy / scale;
     })
 }
 
@@ -222,7 +247,7 @@ function getChildren(root) {
     function recurse(node) {
         if (node.children) node.children.forEach(recurse);
         //TODO temporary id assignment, should be omitted after json will be fetched from the database
-        if (/*!node.id*/ node.type != "router") node.id = generateId();
+        //if (/*!node.topologyId*/ node.physicalRole != "router") node.topologyId = generateId();
         if (!node.size) node.size = {"width": nodeSize, "height": nodeSize};
         nodes.push(node);
     }
@@ -270,18 +295,20 @@ function lineMouseDownListener(d) {
     //parent is set to node closest to the router
     var n = {
         "name": null,
-        "type": "lineBreak",
-        "role": null,
-        "id": generateId(),
-        "x": xx,
-        "y": yy,
-        "fixed": true,
+        "id" : null,
+        "topologyId": generateId(),
+        "address4" : null,
+        "logicalRole": null,
+        "physicalRole": "lineBreak",
         "parent": d.source,
         "children": [d.target],
         "size": {
             "width": lineBreakNodeSize,
             "height": lineBreakNodeSize
-        }
+        },
+        "x": xx,
+        "y": yy,
+        "fixed": true
     };
 
     //add node as child to his parent router
@@ -294,7 +321,7 @@ function lineMouseDownListener(d) {
     d.target.parent = n;
 
     update();
-    simulate(document.getElementById(n.id), "mousedown", {pointerX: d3.mouse(this)[0], pointerY: d3.mouse(this)[1]});
+    simulate(document.getElementById(n.topologyId), "mousedown", {pointerX: d3.mouse(this)[0], pointerY: d3.mouse(this)[1]});
 };
 
 function lineBreakNodeDblClickListener(d) {
@@ -333,6 +360,8 @@ function tick() {
                 return "#FF2E83";
             else if (d.type == "incoming")
                 return "#339FFF";
+            else if(d.type.search("invisible") != -1)
+                return "rgba(255,255,255,0)";
             else
                 return "#C73EFF";
         });
@@ -344,7 +373,7 @@ function computeCoordinates(a1, a2, b1, b2, options) {
     var c1, c2, new_c1, new_c2;
 
     //changing side based on direction of the traffic(type = incoming/outcoming)
-    if (options.type == "incoming") {
+    if (options.type.search("incoming") != -1) {
         if (options.direction == "right")
             options.direction = "left";
         else
@@ -380,9 +409,9 @@ function computeCoordinates(a1, a2, b1, b2, options) {
     return [x(new_c1), y(new_c2)];
 }
 
-function findNodeById(id) {
+function findNodeById(topologyId) {
     for (var i = 0; i < nodes.length; i++) {
-        if (nodes[i].id == id)
+        if (nodes[i].topologyId == topologyId)
             return nodes[i];
     }
 }
@@ -516,6 +545,7 @@ function slide(){
 function slide(){
     link.each(function(d){
         var l = d3.select(this);
+        if(d.type.search("invisible") == -1)
         l.interval = window.setInterval(function(){
             l.style("stroke-dasharray", function(d){
                 style = d.animation.start(this, d.type);
@@ -527,9 +557,10 @@ function slide(){
 
 function paintLines(){
     window.setInterval(function(){
-        //here, all variable data should be fetched periodically
         //change colour based on trafic
-        link.style("stroke", function (d) {
+        link.transition()
+            .duration(4000)
+            .style("stroke", function (d) {
             var intervalIndex = Math.floor((/*d.load / d.bandwidth*/0.8) * colors.intervals);
             return d.colorScale.paint(Math.min(Math.floor(Math.random()*10,4)));
         });
