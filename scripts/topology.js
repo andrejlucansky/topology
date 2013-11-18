@@ -209,7 +209,7 @@ function update() {
     group.append("image")
         .attr("xlink:href", function (d) {
             if(d.logicalRole != null)
-                return imagePath + d.logicalRole + imageFormat;
+                return imagePath + d.logicalRole + ".svg";
         })
         .attr("x", function (d) {
             return d.size.width / 2;
@@ -321,7 +321,7 @@ function lineMouseDownListener(d) {
     d.target.parent = n;
 
     update();
-    simulate(document.getElementById(n.topologyId), "mousedown", {pointerX: d3.mouse(this)[0], pointerY: d3.mouse(this)[1]});
+    simulate(document.getElementById(n.topologyId), "mousedown", {pointerX: coordinates[0], pointerY: coordinates[1]});
 };
 
 function lineBreakNodeDblClickListener(d) {
