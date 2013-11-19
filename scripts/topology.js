@@ -31,8 +31,8 @@ var colors = {
 };
 
 var imagePath = "../images/",
-    imageType = "";//"_transparent",
-    imageFormat = ".png";//".svg";
+    imageType = "_transparent",
+    imageFormat = ".svg";
 
 var x = d3.scale.linear()
     .domain([0, width])
@@ -52,7 +52,7 @@ var force = d3.layout.force()
     .size([width, height])
     .on("tick", tick)
     .on("end", end)
-    .linkDistance(80)
+    .linkDistance(120)
     .charge(-500);
 
 var link = svg.selectAll(".link"),
@@ -142,6 +142,14 @@ function update() {
 
     node.exit().remove();
 
+    //update router node icon on collapse
+    node.select("image").attr("xlink:href", function(d){
+        if(d.physicalRole == "lineBreak")
+            return imagePath + d.physicalRole + imageType + ".png";
+        else
+            return imagePath + d.physicalRole + imageType + imageFormat;
+    });
+
     var group = node.enter()
         .append("g")
         .attr("class", function (d) {
@@ -153,34 +161,14 @@ function update() {
         .attr("id", function (d) {
             return d.topologyId;
         })
-        .call(d3.behavior.drag()
-            .on("dragstart", function(d){
-                d.fixed = true;
-                d3.select(this).classed("fixed", true)
-                d3.event.sourceEvent.stopPropagation();
-            })
-            .on("drag", function(d){
-                d.px += d3.event.dx / scale;
-                d.py += d3.event.dy / scale;
-                d.x += d3.event.dx / scale;
-                d.y += d3.event.dy / scale;
-                //for routers, compute coordinates of their children if they are hidden
-                if(d.physicalRole == "router" && d.children == null) {
-                    d._children.forEach(function(ch){
-                       setPosition(ch, d3.event);
-                       ch.x += d3.event.dx / scale;
-                       ch.y += d3.event.dy / scale;
-                       ch.px += d3.event.dx / scale;
-                       ch.py += d3.event.dy / scale;
-                    });
-                }
-                force.resume()
-            })
-        );
+        .call(routerNodeDragListener);
 
     group.append("image")
         .attr("xlink:href", function (d) {
-            return imagePath + d.physicalRole + imageType + imageFormat;
+            if(d.physicalRole == "lineBreak")
+                return imagePath + d.physicalRole + imageType + ".png";
+            else
+                return imagePath + d.physicalRole + imageType + imageFormat;
         })
         .attr("x", function (d) {
             return -(d.size.width / 2);
@@ -270,14 +258,41 @@ function zoom(){
     tick();
 }
 
+var routerNodeDragListener =
+    d3.behavior.drag()
+        .on("dragstart", function(d){
+            d.fixed = true;
+            d3.select(this).classed("fixed", true)
+            d3.event.sourceEvent.stopPropagation();
+        })
+        .on("drag", function(d){
+            d.px += d3.event.dx / scale;
+            d.py += d3.event.dy / scale;
+            d.x += d3.event.dx / scale;
+            d.y += d3.event.dy / scale;
+            //for routers, compute coordinates of their children if they are hidden
+            if((d.physicalRole == "router" || d.physicalRole =="cloud") && d.children == null) {
+                d._children.forEach(function(ch){
+                    setPosition(ch, d3.event);
+                    ch.x += d3.event.dx / scale;
+                    ch.y += d3.event.dy / scale;
+                    ch.px += d3.event.dx / scale;
+                    ch.py += d3.event.dy / scale;
+                });
+            }
+            force.resume()
+        });
+
 function routerNodeDblClickListener(d) {
     if (!d3.event.defaultPrevented) {
         if (d.children) {
             d._children = d.children;
             d.children = null;
+            d.physicalRole = "cloud";
         } else {
             d.children = d._children;
             d._children = null;
+            d.physicalRole = "router";
         }
         update();
     }
