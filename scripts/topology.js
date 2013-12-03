@@ -380,10 +380,15 @@ function lineBreakNodeDblClickListener(d) {
         });
 }*/
 
+/**
+ * This function is called on every time the graph needs to be refreshed. It computes new positions of nodes in layout as well as
+ * starting and ending points of all links(lines) between these nodes.
+ */
 function tick() {
+    //refreshes position of all nodes in graph
     node.attr("transform", function(d){  return "translate(" + x(d.x) + "," + y(d.y) + ")";});
 
-    // this part of code is working for straight lines between nodes
+    //refreshes starting and ending points of all links in graph
     link
         .attr("x1", function (d) {
             d.sourceNormalAttributes = getNormalAttributes(d.source, d.target, d.type, "out");
@@ -401,6 +406,19 @@ function tick() {
         });
 }
 
+/**
+ * Function getNormalAttributes computes properties of normal vector belonging to a line segment. In graph, this line
+ * segment is represented as a link between source and target vectors. Every link in graph can have two normal vectors,
+ * each on the opposite end of the link. Direction of these vectors is computed according to the link properties,
+ * such as source, type and traffic direction.
+ * @param source Starting point of the line segment.
+ * @param target Ending point of the line segment.
+ * @param type Type of a link for which the normal attributes should be computed, e.g. incoming, outcoming or invisible.
+ * @param traffic Direction of the link. This direction can be only "in" or "out".
+ * @returns Object containing starting point of the normal vector, ending point of the normal vector and the ratio
+ *          for which the length of the normal vector should be shortened. Ending point is in the same distance from
+ *          the starting point as is the length of the line segment for which these attributes are computed.
+ */
 function getNormalAttributes(source, target, type, traffic){
     var normalEndX,
         normalEndY,
@@ -446,28 +464,33 @@ function getVectorDirection(type, direction){
    var result;
 
     switch (type) {
-        case "invisible":   //invisible overlay lines should end in centers of their source and target nodes, without any translation applied to them
+        //invisible overlay lines should end in centers of their source and target nodes, without any translation applied to them
+        case "invisible":
             result = null;
             break;
-        case "outcoming":   //every outcoming line should be aligned to the right from the source and to the left from the target side
-            if (direction == "out")
+        //every outcoming line should be aligned to the right from the source and to the left from the target side
+        case "outcoming":
+             if (direction == "out")
                 result = "right";
             else
                 result = "left";
             break;
-        case "incoming":    //every incoming line should be aligned to the left from the source and to the right from the target side
+        //every incoming line should be aligned to the left from the source and to the right from the target side
+        case "incoming":
             if (direction == "in")
                 result = "right";
             else
                 result = "left";
             break;
-        case "routerToRouter":  //links between routers should be always aligned to the right from the source and to the left from the target
+        //links between routers should be always aligned to the right from the source and to the left from the target
+        case "routerToRouter":
             if(direction == "out")
                 result = "right";
             else
                 result = "left";
             break;
-        default:    //if all else fails - lines should be centered to their source and target nodes, without any translation applied to them
+        //if all else fails - lines should be centered to their source and target nodes, without any translation applied to them
+        default:
             result = null;
     }
 
