@@ -446,28 +446,28 @@ function getVectorDirection(type, direction){
    var result;
 
     switch (type) {
-        case "invisible":
+        case "invisible":   //invisible overlay lines should end in centers of their source and target nodes, without any translation applied to them
             result = null;
             break;
-        case "outcoming":
+        case "outcoming":   //every outcoming line should be aligned to the right from the source and to the left from the target side
             if (direction == "out")
                 result = "right";
             else
                 result = "left";
             break;
-        case "incoming":
+        case "incoming":    //every incoming line should be aligned to the left from the source and to the right from the target side
             if (direction == "in")
                 result = "right";
             else
                 result = "left";
             break;
-        case "routerToRouter":
+        case "routerToRouter":  //links between routers should be always aligned to the right from the source and to the left from the target
             if(direction == "out")
                 result = "right";
             else
                 result = "left";
             break;
-        default:
+        default:    //if all else fails - lines should be centered to their source and target nodes, without any translation applied to them
             result = null;
     }
 
