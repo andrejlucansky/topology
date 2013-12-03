@@ -2,8 +2,8 @@ var width = window.innerWidth - 20,
     height = window.innerHeight - 20,
     nodeSize = 32,
     lineBreakNodeSize = 10,
-    defaultLineNormalLength = 2,
-    scaledLineNormalLength = defaultLineNormalLength,
+    defaultNormalLength = 2,
+    scaledNormalLength = defaultNormalLength,
     scale = 1,
     translate = [0,0],
     root;
@@ -68,20 +68,41 @@ d3.json(connectionString, function (json) {
     //paintLines();
 });
 
-/*type: computer, server, mobile
- role : reflector, wolf, sheep, iba koncove uzly */
-
 function update() {
     nodes = getChildren(root),
-        links = d3.layout.tree().links(nodes);
+    links = d3.layout.tree().links(nodes);
 
+    createLinks();
+    createNodes();
+
+    //start animation
+    slide();
+
+    //start simulation
+    force.nodes(nodes)
+        .links(links)
+        .start();
+
+    //bind click links from router to computer
+    svg.selectAll(".invisible").on("mousedown", lineMouseDownListener);
+    //bind doubleclick for routers to be collabsible
+    svg.selectAll(".router").on("dblclick", routerNodeDblClickListener);
+    //bind doubleclick for line breaks to disappear
+    svg.selectAll(".lineBreak").on("dblclick", lineBreakNodeDblClickListener);
+}
+
+function createLinks(){
     links.forEach(function (l) {
-        //create unique id for each opposite direction link
+        //set additional properties for original links
         l.topologyId = generateId();
-        //set type of original link to outcoming/upload
         l.type = "outcoming";
+        l.visible = true;
+
         //create link in opposite direction
-        links.push({"source": l.source, "target": l.target, "type": "incoming", "topologyId": generateId()});
+        links.push({"source": l.source, "target": l.target, "type": "incoming", "visible" : true, "topologyId": generateId()});
+
+        //add invisible overlay link to the list
+        links.push({"source": l.source, "target": l.target, "type": "invisible", "visible": false, "topologyId": generateId()});
     });
 
     //add links which are between routers
@@ -89,19 +110,14 @@ function update() {
         var source = findNodeById(l.source),
             target = findNodeById(l.target);
 
-        links.push({"source": source, "target": target, "type": "routerToRouter", "topologyId": generateId()});
+        links.push({"source": source, "target": target, "type": "routerToRouter", "visible" : true, "topologyId": generateId()});
         //links.push({"source": target, "target": source, "type": "routerToRouter", "topologyId": generateId()});
     })
 
     //add invisible link overlay on all links
-    links.forEach(function(d){
-        links.push({"source": d.source, "target": d.target, "type": "invisible " + d.type, "topologyId": generateId()});
-    });
-
-    //start simulation
-    force.nodes(nodes)
-        .links(links)
-        .start();
+/*    links.forEach(function(d){
+        links.push({"source": d.source, "target": d.target, "type": d.type, "visible": false, "topologyId": generateId()});
+    });*/
 
     link = link.data(links, function (d) {
         return d.topologyId;
@@ -111,7 +127,7 @@ function update() {
 
     link.enter()
         .insert("line", ".node")
-        .attr("class", function(d){return "link " + d.type;})
+        .attr("class", function(d){var visibility = d.visible ? "visible" : "invisible"; return "link " + d.type + " " + visibility;})
         .attr("sourceid", function (d) {
             return d.source.topologyId;
         })
@@ -122,10 +138,6 @@ function update() {
             return d.topologyId;
         });
 
-    //bind click links from router to computer
-    svg.selectAll(".incoming").on("mousedown", lineMouseDownListener);
-    svg.selectAll(".outcoming").on("mousedown", lineMouseDownListener);
-
     links.forEach(function(d){
         //activate animation
         d.animation = new Animation();
@@ -134,8 +146,9 @@ function update() {
         //color lines
         d.colorScale = new RGBScale(colors);
     })
-    slide();
+}
 
+function createNodes(){
     node = node.data(nodes, function (d) {
         return d.topologyId;
     });
@@ -211,11 +224,6 @@ function update() {
         .attr("height", function (d) {
             return d.size.height / 2;
         });
-
-    //bind doubleclick for routers to be collabsible
-    svg.selectAll(".router").on("dblclick", routerNodeDblClickListener);
-    //bind doubleclick for line breaks to disappear
-    svg.selectAll(".lineBreak").on("dblclick", lineBreakNodeDblClickListener);
 }
 
 function setPosition(node, event){
@@ -250,7 +258,7 @@ function getChildren(root) {
 function zoom(){
     scale = d3.event.scale;
     translate = d3.event.translate;
-    scaledLineNormalLength = defaultLineNormalLength / scale;
+    scaledNormalLength = defaultNormalLength / scale;
     svg.selectAll(".test").attr("transform",
         "translate(" + translate + ")"
             + " scale(" + scale + ")");
@@ -354,7 +362,7 @@ function lineBreakNodeDblClickListener(d) {
     update();
 };
 
-function tick() {
+/*function tick() {
     node.attr("transform", function(d){  return "translate(" + x(d.x) + "," + y(d.y) + ")";});
 
     // this part of code is working for straight lines between nodes
@@ -369,20 +377,103 @@ function tick() {
         })
         .attr("y2", function (d) {
             return  computeCoordinates(d.target.x, d.target.y, d.source.x, d.source.y, {"direction": "left", "type": d.type})[1];
+        });
+}*/
+
+function tick() {
+    node.attr("transform", function(d){  return "translate(" + x(d.x) + "," + y(d.y) + ")";});
+
+    // this part of code is working for straight lines between nodes
+    link
+        .attr("x1", function (d) {
+            d.sourceNormalAttributes = getNormalAttributes(d.source, d.target, d.type, "out");
+            return getScaledNormalEnd(d.sourceNormalAttributes.start.x, d.sourceNormalAttributes.end.x, d.sourceNormalAttributes.ratio, x);
         })
-        .style("stroke", function (d) {
-            if (d.type == "outcoming")
-                return "#FF2E83";
-            else if (d.type == "incoming")
-                return "#339FFF";
-            else if(d.type.search("invisible") != -1)
-                return "rgba(255,255,255,0)";
-            else
-                return "#C73EFF";
+        .attr("y1", function (d) {
+            return  getScaledNormalEnd(d.sourceNormalAttributes.start.y, d.sourceNormalAttributes.end.y, d.sourceNormalAttributes.ratio, y);
+        })
+        .attr("x2", function (d) {
+            d.targetNormalAttributes = getNormalAttributes(d.target, d.source, d.type, "in");
+            return   getScaledNormalEnd(d.targetNormalAttributes.start.x, d.targetNormalAttributes.end.x, d.targetNormalAttributes.ratio, x);
+        })
+        .attr("y2", function (d) {
+            return   getScaledNormalEnd(d.targetNormalAttributes.start.y, d.targetNormalAttributes.end.y, d.targetNormalAttributes.ratio, y);
         });
 }
 
-//TODO refactor
+function getNormalAttributes(source, target, type, traffic){
+    var normalEndX,
+        normalEndY,
+        vectorDirection = getVectorDirection(type, traffic);
+
+    if(vectorDirection == null)
+        return {"start": source, "end": {"x":null, "y": null}, "ratio": null};
+
+    if(vectorDirection == "right")
+    {
+        normalEndX = source.x - source.y + target.y;
+        normalEndY = source.x + source.y - target.x;
+    }
+    else
+    {
+        normalEndX = source.y + source.x - target.y;
+        normalEndY = source.y - source.x + target.x;
+    }
+
+    // pytagorova veta na vypocet dlzky ab
+    var lineLengthSquared = Math.pow((target.x - source.x), 2) + Math.pow((target.y - source.y), 2),
+        scaledNormalLengthSquared = Math.pow(scaledNormalLength, 2),
+        ratio = scaledNormalLengthSquared / lineLengthSquared;
+
+    return {"start": source, "end": {"x": normalEndX, "y": normalEndY}, "ratio": ratio};
+}
+
+function getScaledNormalEnd(normalStart, normalEnd, ratio, linearTransformation){
+    if(normalEnd == null){
+        return linearTransformation(normalStart);
+    }
+
+    var scaledNormalEnd;
+    if (normalEnd >= normalStart)
+        scaledNormalEnd = Math.sqrt(Math.pow((normalEnd - normalStart), 2) * ratio) + normalStart;
+    else
+        scaledNormalEnd = -(Math.sqrt(Math.pow((normalStart - normalEnd), 2) * ratio)) + normalStart;
+
+    return linearTransformation(scaledNormalEnd);
+}
+
+function getVectorDirection(type, direction){
+   var result;
+
+    switch (type) {
+        case "invisible":
+            result = null;
+            break;
+        case "outcoming":
+            if (direction == "out")
+                result = "right";
+            else
+                result = "left";
+            break;
+        case "incoming":
+            if (direction == "in")
+                result = "right";
+            else
+                result = "left";
+            break;
+        case "routerToRouter":
+            if(direction == "out")
+                result = "right";
+            else
+                result = "left";
+            break;
+        default:
+            result = null;
+    }
+
+    return result;
+}
+/*
 function computeCoordinates(a1, a2, b1, b2, options) {
 
     var c1, c2, new_c1, new_c2;
@@ -407,22 +498,22 @@ function computeCoordinates(a1, a2, b1, b2, options) {
     // pytagorova veta na vypocet dlzky ab
     var ab_squared = Math.pow((b1 - a1), 2) + Math.pow((b2 - a2), 2);
 
-    var ac = scaledLineNormalLength;
+    var ac = scaledNormalLength;
     var ac_squared = Math.pow(ac, 2);
     var ratio = ac_squared / ab_squared;
 
     if (c1 >= a1)
         new_c1 = Math.sqrt(Math.pow((c1 - a1), 2) * ratio) + a1;
-    else
+    else        //obratit c1 a a1
         new_c1 = -(Math.sqrt(Math.pow((c1 - a1), 2) * ratio)) + a1;
 
     if (c2 >= a2)
         new_c2 = Math.sqrt(Math.pow((c2 - a2), 2) * ratio) + a2;
-    else
+    else            //obratit c2 a a2
         new_c2 = -(Math.sqrt(Math.pow((c2 - a2), 2) * ratio)) + a2;
 
     return [x(new_c1), y(new_c2)];
-}
+}*/
 
 function findNodeById(topologyId) {
     for (var i = 0; i < nodes.length; i++) {
@@ -444,6 +535,90 @@ function generateId() {
         return v.toString(16);
     });
 }
+
+/*
+function slide(){
+    var l = d3.select(this);
+    l.interval = window.setInterval(function(){
+        l.style("stroke-dasharray", function(d){
+            return d.animation.start(this, d.type);
+        })
+    }, l.datum().animation.speed)
+}*/
+
+function slide(){
+    link.each(function(d){
+        var l = d3.select(this);
+        if(d.visible)
+        l.interval = window.setInterval(function(){
+            l.style("stroke-dasharray", function(d){
+                style = d.animation.start(this, d.type);
+                return style;
+            });
+        }, l.datum().animation.speed);
+    })
+}
+
+function paintLines(){
+    window.setInterval(function(){
+        //change colour based on trafic
+        link.transition()
+            .duration(4000)
+            .style("stroke", function (d) {
+            if(d.visible){
+                var intervalIndex = Math.floor((/*d.load / d.bandwidth*/0.8) * colors.intervals);
+                return d.colorScale.paint(Math.min(Math.floor(Math.random()*10),4));
+            }
+            else
+                return "rgba(255,255,255,0)";
+        });
+
+    },5000);
+}
+
+function Animation() {
+    this.step =  ["3,2","0,1,3,1","0,2,3,0","1,2,2,0","2,2,1,0"];
+    this.lastStep  = 4;
+    this.speed = 1000;
+
+    this.start = function(link, type){
+        return type == "incoming" ? this.in(link) : this.out(link);
+    }
+
+    this.out = function(link){
+        this.lastStep < 4 ? this.lastStep += 1 :this.lastStep = 0;
+        return this.step[this.lastStep];
+    };
+
+    this.in = function(link){
+        this.lastStep > 0 ? this.lastStep -= 1 :this.lastStep = 4;
+        return this.step[this.lastStep];
+    };
+}
+
+function RGBScale(colors){
+    this.red = new ColorScale(colors.red, colors.intervals);
+    this.green = new ColorScale(colors.green, colors.intervals);
+    this.blue = new ColorScale(colors.blue, colors.intervals);
+
+    this.paint = function(intervalIndex){
+        //console.log("rgb("+ this.red.color(intervalIndex) +"," + this.green.color(intervalIndex) + "," + this.blue.color(intervalIndex) +")");
+        return "rgb("+ this.red.color(intervalIndex) +"," + this.green.color(intervalIndex) + "," + this.blue.color(intervalIndex) +")";
+    }
+
+    function ColorScale(color, intervals){
+        this.start = color.start;
+        this.end = color.end;
+
+        this.intervalLength = function(){
+            return (this.end - this.start) / (intervals - 1);
+        }
+        this.color = function(intervalIndex){
+            return this.start + (this.intervalLength() * intervalIndex);
+        }
+    }
+}
+
 
 function simulate(element, eventName) {
     var options = extend(defaultOptions, arguments[2] || {});
@@ -545,83 +720,5 @@ function testArrayRemove() {
         }
         else
             i++;
-    }
-}
-/*
-function slide(){
-    var l = d3.select(this);
-    l.interval = window.setInterval(function(){
-        l.style("stroke-dasharray", function(d){
-            return d.animation.start(this, d.type);
-        })
-    }, l.datum().animation.speed)
-}*/
-
-function slide(){
-    link.each(function(d){
-        var l = d3.select(this);
-        if(d.type.search("invisible") == -1)
-        l.interval = window.setInterval(function(){
-            l.style("stroke-dasharray", function(d){
-                style = d.animation.start(this, d.type);
-                return style;
-            });
-        }, l.datum().animation.speed);
-    })
-}
-
-function paintLines(){
-    window.setInterval(function(){
-        //change colour based on trafic
-        link.transition()
-            .duration(4000)
-            .style("stroke", function (d) {
-            var intervalIndex = Math.floor((/*d.load / d.bandwidth*/0.8) * colors.intervals);
-            return d.colorScale.paint(Math.min(Math.floor(Math.random()*10,4)));
-        });
-
-    },5000);
-}
-
-function Animation() {
-    this.step =  ["3,2","0,1,3,1","0,2,3,0","1,2,2,0","2,2,1,0"];
-    this.lastStep  = 4;
-    this.speed = 1000;
-
-    this.start = function(link, type){
-        return type == "incoming" ? this.in(link) : this.out(link);
-    }
-
-    this.out = function(link){
-        this.lastStep < 4 ? this.lastStep += 1 :this.lastStep = 0;
-        return this.step[this.lastStep];
-    };
-
-    this.in = function(link){
-        this.lastStep > 0 ? this.lastStep -= 1 :this.lastStep = 4;
-        return this.step[this.lastStep];
-    };
-}
-
-function RGBScale(colors){
-    this.red = new ColorScale(colors.red, colors.intervals);
-    this.green = new ColorScale(colors.green, colors.intervals);
-    this.blue = new ColorScale(colors.blue, colors.intervals);
-
-    this.paint = function(intervalIndex){
-        //console.log("rgb("+ this.red.color(intervalIndex) +"," + this.green.color(intervalIndex) + "," + this.blue.color(intervalIndex) +")");
-        return "rgb("+ this.red.color(intervalIndex) +"," + this.green.color(intervalIndex) + "," + this.blue.color(intervalIndex) +")";
-    }
-
-    function ColorScale(color, intervals){
-        this.start = color.start;
-        this.end = color.end;
-
-        this.intervalLength = function(){
-            return (this.end - this.start) / (intervals - 1);
-        }
-        this.color = function(intervalIndex){
-            return this.start + (this.intervalLength() * intervalIndex);
-        }
     }
 }
