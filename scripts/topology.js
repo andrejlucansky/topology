@@ -390,7 +390,7 @@ function tick() {
 
 /**
  * Function getNormalAttributes computes properties of normal vector belonging to a line segment. In graph, this line
- * segment is represented as a link between source and target vectors. Every link in graph can have two normal vectors,
+ * segment is represented as a link between source and target nodes. Every link in graph can have two normal vectors,
  * each on the opposite end of the link. Direction of these vectors is computed according to the link properties,
  * such as source, type and traffic direction.
  * @param source Starting point of the line segment.
@@ -429,8 +429,10 @@ function getNormalAttributes(source, target, type, traffic){
 }
 
 /**
- * Function getScaledNormalEndCoordinate computes new ending point of the given normal vector. This new ending point is
- * retrieved by scaling original normal vector length by the given ratio.
+ * Normal vectors of line segment between nodes are being used to compute starting/ending points of links coming to and
+ * from the node in a graph. These normal vectors have length of the line which they belong to.
+ * Function getScaledNormalEndCoordinate computes new ending point of the given normal vector to adjust vectors length.
+ * This new ending point is retrieved by scaling original normal vector length by the given ratio.
  * @param normalStart Start of the normal vector and also the starting/ending point of the line segment which
  *                    the normal belongs to.
  * @param normalEnd End of the normal vector, which is in the same distance from the normalStart as is the length of
@@ -438,8 +440,7 @@ function getNormalAttributes(source, target, type, traffic){
  * @param ratio Ratio for which the length of the normal vector should be shortened.
  * @param linearTransformation Function used to translate resulting coordinate to the range of a layout the graph is using.
  * @returns X or y coordinate of the new normal vector end, which was computed and transformed to fit the graph
- *          layout range. This new ending point coordinate can be used to get the translated starting/ending point for
- *          the line segment, which the normal vector belongs to.
+ *          layout range.
  */
 function getScaledNormalEndCoordinate(normalStart, normalEnd, ratio, linearTransformation){
     if(normalEnd == null){
