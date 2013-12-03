@@ -362,26 +362,8 @@ function lineBreakNodeDblClickListener(d) {
     update();
 };
 
-/*function tick() {
-    node.attr("transform", function(d){  return "translate(" + x(d.x) + "," + y(d.y) + ")";});
-
-    // this part of code is working for straight lines between nodes
-    link.attr("x1", function (d) {
-        return computeCoordinates(d.source.x, d.source.y, d.target.x, d.target.y, {"direction": "right", "type": d.type})[0];
-    })
-        .attr("y1", function (d) {
-            return computeCoordinates(d.source.x, d.source.y, d.target.x, d.target.y, {"direction": "right", "type": d.type})[1];
-        })
-        .attr("x2", function (d) {
-            return  computeCoordinates(d.target.x, d.target.y, d.source.x, d.source.y, {"direction": "left", "type": d.type})[0];
-        })
-        .attr("y2", function (d) {
-            return  computeCoordinates(d.target.x, d.target.y, d.source.x, d.source.y, {"direction": "left", "type": d.type})[1];
-        });
-}*/
-
 /**
- * This function is called on every time the graph needs to be refreshed. It computes new positions of nodes in layout as well as
+ * This function is called on every time the graph needs to be refreshed. It computes new positions of nodes in the layout as well as
  * starting and ending points of all links(lines) between these nodes.
  */
 function tick() {
@@ -392,17 +374,17 @@ function tick() {
     link
         .attr("x1", function (d) {
             d.sourceNormalAttributes = getNormalAttributes(d.source, d.target, d.type, "out");
-            return getScaledNormalEnd(d.sourceNormalAttributes.start.x, d.sourceNormalAttributes.end.x, d.sourceNormalAttributes.ratio, x);
+            return getScaledNormalEndCoordinate(d.sourceNormalAttributes.start.x, d.sourceNormalAttributes.end.x, d.sourceNormalAttributes.ratio, x);
         })
         .attr("y1", function (d) {
-            return  getScaledNormalEnd(d.sourceNormalAttributes.start.y, d.sourceNormalAttributes.end.y, d.sourceNormalAttributes.ratio, y);
+            return  getScaledNormalEndCoordinate(d.sourceNormalAttributes.start.y, d.sourceNormalAttributes.end.y, d.sourceNormalAttributes.ratio, y);
         })
         .attr("x2", function (d) {
             d.targetNormalAttributes = getNormalAttributes(d.target, d.source, d.type, "in");
-            return   getScaledNormalEnd(d.targetNormalAttributes.start.x, d.targetNormalAttributes.end.x, d.targetNormalAttributes.ratio, x);
+            return   getScaledNormalEndCoordinate(d.targetNormalAttributes.start.x, d.targetNormalAttributes.end.x, d.targetNormalAttributes.ratio, x);
         })
         .attr("y2", function (d) {
-            return   getScaledNormalEnd(d.targetNormalAttributes.start.y, d.targetNormalAttributes.end.y, d.targetNormalAttributes.ratio, y);
+            return   getScaledNormalEndCoordinate(d.targetNormalAttributes.start.y, d.targetNormalAttributes.end.y, d.targetNormalAttributes.ratio, y);
         });
 }
 
@@ -446,7 +428,20 @@ function getNormalAttributes(source, target, type, traffic){
     return {"start": source, "end": {"x": normalEndX, "y": normalEndY}, "ratio": ratio};
 }
 
-function getScaledNormalEnd(normalStart, normalEnd, ratio, linearTransformation){
+/**
+ * Function getScaledNormalEndCoordinate computes new ending point of the given normal vector. This new ending point is
+ * retrieved by scaling original normal vector length by the given ratio.
+ * @param normalStart Start of the normal vector and also the starting/ending point of the line segment which
+ *                    the normal belongs to.
+ * @param normalEnd End of the normal vector, which is in the same distance from the normalStart as is the length of
+ *                  the line segment which the vector belongs to.
+ * @param ratio Ratio for which the length of the normal vector should be shortened.
+ * @param linearTransformation Function used to translate resulting coordinate to the range of a layout the graph is using.
+ * @returns X or y coordinate of the new normal vector end, which was computed and transformed to fit the graph
+ *          layout range. This new ending point coordinate can be used to get the translated starting/ending point for
+ *          the line segment, which the normal vector belongs to.
+ */
+function getScaledNormalEndCoordinate(normalStart, normalEnd, ratio, linearTransformation){
     if(normalEnd == null){
         return linearTransformation(normalStart);
     }
@@ -496,47 +491,6 @@ function getVectorDirection(type, direction){
 
     return result;
 }
-/*
-function computeCoordinates(a1, a2, b1, b2, options) {
-
-    var c1, c2, new_c1, new_c2;
-
-    //changing side based on direction of the traffic(type = incoming/outcoming)
-    if (options.type.search("incoming") != -1) {
-        if (options.direction == "right")
-            options.direction = "left";
-        else
-            options.direction = "right";
-    }
-
-
-    if (options && options.direction == "right") {
-        c1 = a2 + a1 - b2;
-        c2 = a2 - a1 + b1;
-    } else {
-        c1 = a1 - a2 + b2;
-        c2 = a1 + a2 - b1;
-    }
-
-    // pytagorova veta na vypocet dlzky ab
-    var ab_squared = Math.pow((b1 - a1), 2) + Math.pow((b2 - a2), 2);
-
-    var ac = scaledNormalLength;
-    var ac_squared = Math.pow(ac, 2);
-    var ratio = ac_squared / ab_squared;
-
-    if (c1 >= a1)
-        new_c1 = Math.sqrt(Math.pow((c1 - a1), 2) * ratio) + a1;
-    else        //obratit c1 a a1
-        new_c1 = -(Math.sqrt(Math.pow((c1 - a1), 2) * ratio)) + a1;
-
-    if (c2 >= a2)
-        new_c2 = Math.sqrt(Math.pow((c2 - a2), 2) * ratio) + a2;
-    else            //obratit c2 a a2
-        new_c2 = -(Math.sqrt(Math.pow((c2 - a2), 2) * ratio)) + a2;
-
-    return [x(new_c1), y(new_c2)];
-}*/
 
 function findNodeById(topologyId) {
     for (var i = 0; i < nodes.length; i++) {
