@@ -1,14 +1,21 @@
 var width = window.innerWidth - 20,
     height = window.innerHeight - 20,
-    nodeSize = 32,
+    nodeSize = 48,
     lineBreakNodeSize = 10,
     defaultNormalLength = 2,
     scaledNormalLength = defaultNormalLength,
     scale = 1,
     translate = [0,0],
-    root;
+    root,
+    timestamps,
+    simulationInterval,
+    defaultSpeed = 1105;
 
-var connectionString = "http://147.251.43.124:8080/visualisationdata/network/topology";
+var topologyConnectionString = "http://147.251.43.124:8080/visualisationdata-test/network/topology",
+    linkUsageConnectionString = "http://147.251.43.124:8080/visualisationdata-test/network/usage/link",
+    logicalRolesConnectionString = "http://147.251.43.124:8080/visualisationdata-test/network/topology/logicalRoles",
+    timestampsConnectionString = "http://147.251.43.124:8080/visualisationdata-test/time/all-timestamps";
+
 //var connectionString = "../data/clusterTopologyTreePresentation.json";
 
 //data refreshing interval 60 seconds
@@ -62,10 +69,22 @@ var link = svg.selectAll(".link"),
 var nodes,
     links;
 
-d3.json(connectionString, function (json) {
+/*test();
+function test(){
+    var interval = window.setInterval(function(){
+        alert("interval skoncil");
+    }, 1000);
+    //window.clearInterval(interval);
+}*/
+d3.json(timestampsConnectionString, function(json){
+    timestamps = json.timestamps;
+});
+
+d3.json(topologyConnectionString, function (json) {
     root = json;
     update();
     //paintLines();
+    startSimulation();
 });
 
 function update() {
@@ -76,7 +95,7 @@ function update() {
     createNodes();
 
     //start animation
-    slide();
+    //slide();
 
     //start simulation
     force.nodes(nodes)
@@ -110,7 +129,7 @@ function createLinks(){
         var source = findNodeById(l.source),
             target = findNodeById(l.target);
 
-        links.push({"source": source, "target": target, "type": "routerToRouter", "visible" : true, "topologyId": generateId()});
+        links.push({"source": source, "target": target, "type": "routerToRouter", "visible" : true, "topologyId": l.id});
         //links.push({"source": target, "target": source, "type": "routerToRouter", "topologyId": generateId()});
     })
 
@@ -141,11 +160,111 @@ function createLinks(){
     links.forEach(function(d){
         //activate animation
         d.animation = new Animation();
-        d.animation.speed = Math.floor(Math.random()*1000);
+        d.animation.speed = 1055;
 
         //color lines
         d.colorScale = new RGBScale(colors);
     })
+}
+
+function startSimulation(){
+    var timestampIndex = 0;
+
+    simulationInterval = window.setInterval(function(){
+        d3.json(linkUsageConnectionString + "?timestamp=" + timestamps[timestampIndex], function (json) {
+            colorAndAnimateLinks(json);
+            //console.log(timestamps[timestampIndex]);
+            //animateLinks(json);
+        });
+        timestampIndex += 1;
+
+        if(timestampIndex >= timestamps.length)
+            window.clearInterval(simulationInterval);
+    }, 1000);
+}
+
+function colorAndAnimateLinks(json) {
+        var routerLinks = json.routerLinks,
+            interfaceLinksIn = json.interfaceLinksIn,
+            interfaceLinksOut = json.interfaceLinksOut;
+
+        link.each(function (d) {
+            var l = d3.select(this),
+                load,
+                speed;
+
+            switch (d.type) {
+                case ("routerToRouter"): {
+                    for (var i = 0; i < routerLinks.length; i++) {
+                        if (d.topologyId == routerLinks[i].id){
+                            load = routerLinks[i].load;
+                            speed = routerLinks[i].speed;
+                        }
+                    }
+                    break;
+                }
+                    //TODO should be remade after dataId is implemented with new topologyId
+                case ("incoming"):{
+                    for (var i = 0; i < interfaceLinksIn.length; i++) {
+                        if(d.target.dataId){
+                            if (d.target.dataId == interfaceLinksIn[i].topologyId){
+                                load = interfaceLinksIn[i].load;
+                                speed = interfaceLinksIn[i].speed;
+                            }
+                        }
+                        else{
+                        if (d.target.topologyId == interfaceLinksIn[i].topologyId) {
+                            load = interfaceLinksIn[i].load;
+                            speed = interfaceLinksIn[i].speed;
+                        }
+                        }
+                    }
+                    break;
+                }
+                case ("outcoming") :{
+                    for (var i = 0; i < interfaceLinksOut.length; i++) {
+                        if(d.target.dataId){
+                            if (d.target.dataId == interfaceLinksOut[i].topologyId){
+                                load = interfaceLinksOut[i].load;
+                                speed = interfaceLinksOut[i].speed;
+                            }
+                        }
+                        else{
+                            if (d.target.topologyId == interfaceLinksOut[i].topologyId) {
+                                load = interfaceLinksOut[i].load;
+                                speed = interfaceLinksOut[i].speed;
+                            }
+                        }
+                    }
+                    break;
+                }
+                default : {
+                    load = -1;
+                    speed = 0;
+                }
+            }
+                l.transition()
+                 .duration(500)
+                 .style("stroke", function (d) {
+                        if(load >= 0) {
+                            var intervalIndex = Math.floor(load * colors.intervals),
+                                color =  d.colorScale.paint(intervalIndex);
+                            return color;
+                        }
+                        else
+                            return "rgba(255,255,255,0)";
+                 });
+
+            if(d.visible){     //TODO toto nepotrebujeme, chcelo by to nejak zmenit aby to vynechavalo invis linky
+                window.clearInterval(d.interval);
+                d.interval = window.setInterval(function(){
+                    l.style("stroke-dasharray", function(d){
+                        style = d.animation.start(this, d.type);
+                        return style;
+                    });
+                }, (defaultSpeed - (l.datum().animation.speed * speed)));
+            }
+        });
 }
 
 function createNodes(){
@@ -219,10 +338,10 @@ function createNodes(){
             return d.size.height / 32;
         })
         .attr("width", function (d) {
-            return d.size.width / 2 ;
+            return d.size.width  / 10 *7;
         })
         .attr("height", function (d) {
-            return d.size.height / 2;
+            return d.size.height / 10 *7;
         });
 }
 
@@ -320,6 +439,7 @@ function lineMouseDownListener(d) {
         "name": null,
         "id" : null,
         "topologyId": generateId(),
+        "dataId": d.target.topologyId,        //TODO this only works for the first iteration of nodes, fix
         "address4" : null,
         "logicalRole": null,
         "physicalRole": "lineBreak",
@@ -363,7 +483,7 @@ function lineBreakNodeDblClickListener(d) {
 };
 
 /**
- * This function is called on every time the graph needs to be refreshed. It computes new positions of nodes in the layout as well as
+ * This function is called every time the graph needs to be refreshed. It computes new positions of nodes in the layout as well as
  * starting and ending points of all links(lines) between these nodes.
  */
 function tick() {
@@ -493,6 +613,7 @@ function getVectorDirection(type, direction){
     return result;
 }
 
+//this function could return node index in nodes array, but it easier to return whole node reference
 function findNodeById(topologyId) {
     for (var i = 0; i < nodes.length; i++) {
         if (nodes[i].topologyId == topologyId)
@@ -591,12 +712,12 @@ function RGBScale(colors){
         this.intervalLength = function(){
             return (this.end - this.start) / (intervals - 1);
         }
+        //ternar operator is used because last color should not display maximum capacity and we should use only as many colors as there are intervals
         this.color = function(intervalIndex){
-            return this.start + (this.intervalLength() * intervalIndex);
+            return this.end - (this.intervalLength() * (intervalIndex > (intervals - 1)  ? (intervals - 1) : intervalIndex));
         }
     }
 }
-
 
 function simulate(element, eventName) {
     var options = extend(defaultOptions, arguments[2] || {});
