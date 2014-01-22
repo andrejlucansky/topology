@@ -16,11 +16,6 @@ var topologyConnectionString = "http://147.251.43.124:8080/visualisationdata-tes
     logicalRolesConnectionString = "http://147.251.43.124:8080/visualisationdata-test/network/topology/logicalRoles",
     timestampsConnectionString = "http://147.251.43.124:8080/visualisationdata-test/time/all-timestamps";
 
-//var connectionString = "../data/clusterTopologyTreePresentation.json";
-
-//data refreshing interval 60 seconds
-var refreshInterval = 60000;
-
 var colors = {
     "red" : {
         "start" : 255,
@@ -103,7 +98,7 @@ function update() {
         .start();
 
     //bind click links from router to computer
-    svg.selectAll(".invisible").on("mousedown", lineMouseDownListener);
+    svg.selectAll(".overlay").on("mousedown", lineMouseDownListener);
     //bind doubleclick for routers to be collabsible
     svg.selectAll(".router").on("dblclick", routerNodeDblClickListener);
     //bind doubleclick for line breaks to disappear
@@ -114,14 +109,14 @@ function createLinks(){
     links.forEach(function (l) {
         //set additional properties for original links
         l.topologyId = generateId();
-        l.type = "outcoming";
+        l.type = "interfaceIn";
         l.visible = true;
 
         //create link in opposite direction
-        links.push({"source": l.source, "target": l.target, "type": "incoming", "visible" : true, "topologyId": generateId()});
+        links.push({"source": l.source, "target": l.target, "type": "interfaceOut", "visible" : true, "topologyId": generateId()});
 
         //add invisible overlay link to the list
-        links.push({"source": l.source, "target": l.target, "type": "invisible", "visible": false, "topologyId": generateId()});
+        links.push({"source": l.source, "target": l.target, "type": "overlay", "visible": false, "topologyId": generateId()});
     });
 
     //add links which are between routers
@@ -133,7 +128,7 @@ function createLinks(){
         //links.push({"source": target, "target": source, "type": "routerToRouter", "topologyId": generateId()});
     })
 
-    //add invisible link overlay on all links
+    //add invisible overlay link on all links
 /*    links.forEach(function(d){
         links.push({"source": d.source, "target": d.target, "type": d.type, "visible": false, "topologyId": generateId()});
     });*/
@@ -204,24 +199,7 @@ function colorAndAnimateLinks(json) {
                     break;
                 }
                     //TODO should be remade after dataId is implemented with new topologyId
-                case ("incoming"):{
-                    for (var i = 0; i < interfaceLinksIn.length; i++) {
-                        if(d.target.dataId){
-                            if (d.target.dataId == interfaceLinksIn[i].topologyId){
-                                load = interfaceLinksIn[i].load;
-                                speed = interfaceLinksIn[i].speed;
-                            }
-                        }
-                        else{
-                        if (d.target.topologyId == interfaceLinksIn[i].topologyId) {
-                            load = interfaceLinksIn[i].load;
-                            speed = interfaceLinksIn[i].speed;
-                        }
-                        }
-                    }
-                    break;
-                }
-                case ("outcoming") :{
+                case ("interfaceOut"):{
                     for (var i = 0; i < interfaceLinksOut.length; i++) {
                         if(d.target.dataId){
                             if (d.target.dataId == interfaceLinksOut[i].topologyId){
@@ -233,6 +211,23 @@ function colorAndAnimateLinks(json) {
                             if (d.target.topologyId == interfaceLinksOut[i].topologyId) {
                                 load = interfaceLinksOut[i].load;
                                 speed = interfaceLinksOut[i].speed;
+                            }
+                        }
+                    }
+                    break;
+                }
+                case ("interfaceIn") :{
+                    for (var i = 0; i < interfaceLinksIn.length; i++) {
+                        if(d.target.dataId){
+                            if (d.target.dataId == interfaceLinksIn[i].topologyId){
+                                load = interfaceLinksIn[i].load;
+                                speed = interfaceLinksIn[i].speed;
+                            }
+                        }
+                        else{
+                            if (d.target.topologyId == interfaceLinksIn[i].topologyId) {
+                                load = interfaceLinksIn[i].load;
+                                speed = interfaceLinksIn[i].speed;
                             }
                         }
                     }
@@ -515,7 +510,7 @@ function tick() {
  * such as source, type and traffic direction.
  * @param source Starting point of the line segment.
  * @param target Ending point of the line segment.
- * @param type Type of a link for which the normal attributes should be computed, e.g. incoming, outcoming or invisible.
+ * @param type Type of a link for which the normal attributes should be computed, e.g. interfaceIn, interfaceOut or overlay.
  * @param traffic Direction of the link. This direction can be only "in" or "out".
  * @returns Object containing starting point of the normal vector, ending point of the normal vector and the ratio
  *          for which the length of the normal vector should be shortened. Ending point is in the same distance from
@@ -581,17 +576,17 @@ function getVectorDirection(type, direction){
 
     switch (type) {
         //invisible overlay lines should end in centers of their source and target nodes, without any translation applied to them
-        case "invisible":
+        case "overlay":
             result = null;
             break;
-        //every outcoming line should be aligned to the right from the source and to the left from the target side
-        case "outcoming":
+        //every interfaceIn line should be aligned to the right from the source and to the left from the target side
+        case "interfaceIn":
              if (direction == "out")
                 result = "right";                                                     else
                 result = "left";
             break;
-        //every incoming line should be aligned to the left from the source and to the right from the target side
-        case "incoming":
+        //every interfaceOut line should be aligned to the left from the source and to the right from the target side
+        case "interfaceOut":
             if (direction == "in")
                 result = "right";
             else
@@ -640,7 +635,7 @@ function Animation() {
     this.speed = 1000;
 
     this.start = function(link, type){
-        return type == "incoming" ? this.in(link) : this.out(link);
+        return type == "interfaceOut" ? this.in(link) : this.out(link);
     }
 
     this.out = function(link){
