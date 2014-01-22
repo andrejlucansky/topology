@@ -531,13 +531,13 @@ function getNormalAttributes(source, target, type, traffic){
 
     if(vectorDirection == "right")
     {
-        normalEndX = source.x - source.y + target.y;
-        normalEndY = source.x + source.y - target.x;
+        normalEndX = source.y + source.x - target.y;
+        normalEndY = source.y - source.x + target.x;
     }
     else
     {
-        normalEndX = source.y + source.x - target.y;
-        normalEndY = source.y - source.x + target.x;
+        normalEndX = source.x - source.y + target.y;
+        normalEndY = source.x + source.y - target.x;
     }
 
     // pytagorova veta na vypocet dlzky ab
@@ -587,8 +587,7 @@ function getVectorDirection(type, direction){
         //every outcoming line should be aligned to the right from the source and to the left from the target side
         case "outcoming":
              if (direction == "out")
-                result = "right";
-            else
+                result = "right";                                                     else
                 result = "left";
             break;
         //every incoming line should be aligned to the left from the source and to the right from the target side
@@ -633,46 +632,6 @@ function generateId() {
         var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
         return v.toString(16);
     });
-}
-
-/*
-function slide(){
-    var l = d3.select(this);
-    l.interval = window.setInterval(function(){
-        l.style("stroke-dasharray", function(d){
-            return d.animation.start(this, d.type);
-        })
-    }, l.datum().animation.speed)
-}*/
-
-function slide(){
-    link.each(function(d){
-        var l = d3.select(this);
-        if(d.visible)
-        l.interval = window.setInterval(function(){
-            l.style("stroke-dasharray", function(d){
-                style = d.animation.start(this, d.type);
-                return style;
-            });
-        }, l.datum().animation.speed);
-    })
-}
-
-function paintLines(){
-    window.setInterval(function(){
-        //change colour based on trafic
-        link.transition()
-            .duration(4000)
-            .style("stroke", function (d) {
-            if(d.visible){
-                var intervalIndex = Math.floor((/*d.load / d.bandwidth*/0.8) * colors.intervals);
-                return d.colorScale.paint(Math.min(Math.floor(Math.random()*10),4));
-            }
-            else
-                return "rgba(255,255,255,0)";
-        });
-
-    },5000);
 }
 
 function Animation() {
@@ -821,3 +780,42 @@ function testArrayRemove() {
             i++;
     }
 }
+
+/* function slide(){
+ var l = d3.select(this);
+ l.interval = window.setInterval(function(){
+ l.style("stroke-dasharray", function(d){
+ return d.animation.start(this, d.type);
+ })
+ }, l.datum().animation.speed)
+ }
+
+function slide(){
+    link.each(function(d){
+        var l = d3.select(this);
+        if(d.visible)
+            l.interval = window.setInterval(function(){
+                l.style("stroke-dasharray", function(d){
+                    style = d.animation.start(this, d.type);
+                    return style;
+                });
+            }, l.datum().animation.speed);
+    })
+}
+
+function paintLines(){
+    window.setInterval(function(){
+        //change colour based on trafic
+        link.transition()
+            .duration(4000)
+            .style("stroke", function (d) {
+                if(d.visible){
+                    var intervalIndex = Math.floor((d.load / d.bandwidth) * colors.intervals);
+                    return d.colorScale.paint(Math.min(Math.floor(Math.random()*10),4));
+                }
+                else
+                    return "rgba(255,255,255,0)";
+            });
+
+    },5000);
+}    */
