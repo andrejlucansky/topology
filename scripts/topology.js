@@ -8,7 +8,9 @@ var width = window.innerWidth - 20,
     translate = [0,0],
     root,
     timestamps,
+    linkUsage,
     simulationInterval,
+    simulationIntervalLength = 5000,
     defaultSpeed = 1105;
 
 var topologyConnectionString = "http://147.251.43.124:8080/visualisationdata-test/network/topology",
@@ -105,18 +107,33 @@ function update() {
     svg.selectAll(".lineBreak").on("dblclick", lineBreakNodeDblClickListener);
 }
 
+/**
+ * Why link topologyIDs are so weird? Because if they were generated with every update, data wouldn't match associated lines after the update,
+ * therefore they would be redrawn every time update is called. This way, only new lines are added, old ones are removed, and those which should stay are not redrawn again.
+ * This IDs work because target.topologyId is always the same -> comes from database, as well as id for router links and router nodes.
+ *
+ * This means, all nodes and all lines are drawn and erased only when needed. No extra operations. This should increase performance, because we do not edit DOM structure every time we call update.
+ */
 function createLinks(){
+    /**
+     * Before every update, all animation intervals must be removed. Otherwise, they would be running forever, becuase update removes references to these intervals.
+     * This is the price you have to pay for using D3.tree, because it creates new set of links on every node structure update.
+     */
+    link.each(function(d){
+        clearInterval(d.interval);
+    })
+
     links.forEach(function (l) {
         //set additional properties for original links
-        l.topologyId = generateId();
+        l.topologyId = l.target.topologyId + "In";
         l.type = "interfaceIn";
         l.visible = true;
 
         //create link in opposite direction
-        links.push({"source": l.source, "target": l.target, "type": "interfaceOut", "visible" : true, "topologyId": generateId()});
+        links.push({"source": l.source, "target": l.target, "type": "interfaceOut", "visible" : true, "topologyId":  l.target.topologyId + "Out"});
 
         //add invisible overlay link to the list
-        links.push({"source": l.source, "target": l.target, "type": "overlay", "visible": false, "topologyId": generateId()});
+        links.push({"source": l.source, "target": l.target, "type": "overlay", "visible": false, "topologyId":  l.target.topologyId + "Overlay"});
     });
 
     //add links which are between routers
@@ -152,6 +169,10 @@ function createLinks(){
             return d.topologyId;
         });
 
+    /**
+     * Data liniek ktore si vymyslim sa pri update vzdy zmazu, pretoze sa vyrabaju nove ciste links(data) v metode getChildren z noveho setu uzlov.
+     * Preto animation, interval, atd. sa vzdy resetne po update. S tym treba pocitat a pozor na to.
+     */
     links.forEach(function(d){
         //activate animation
         d.animation = new Animation();
@@ -167,18 +188,17 @@ function startSimulation(){
 
     simulationInterval = window.setInterval(function(){
         d3.json(linkUsageConnectionString + "?timestamp=" + timestamps[timestampIndex], function (json) {
-            colorAndAnimateLinks(json);
-            //console.log(timestamps[timestampIndex]);
-            //animateLinks(json);
+            linkUsage = json;
+            colorAndAnimateLinks(json, 500);
         });
         timestampIndex += 1;
 
         if(timestampIndex >= timestamps.length)
             window.clearInterval(simulationInterval);
-    }, 1000);
+    }, simulationIntervalLength);
 }
 
-function colorAndAnimateLinks(json) {
+function colorAndAnimateLinks(json, transitionLength) {
         var routerLinks = json.routerLinks,
             interfaceLinksIn = json.interfaceLinksIn,
             interfaceLinksOut = json.interfaceLinksOut;
@@ -198,38 +218,21 @@ function colorAndAnimateLinks(json) {
                     }
                     break;
                 }
-                    //TODO should be remade after dataId is implemented with new topologyId
                 case ("interfaceOut"):{
                     for (var i = 0; i < interfaceLinksOut.length; i++) {
-                        if(d.target.dataId){
-                            if (d.target.dataId == interfaceLinksOut[i].topologyId){
+                            if (d.target.dataReferenceId == interfaceLinksOut[i].topologyId){
                                 load = interfaceLinksOut[i].load;
                                 speed = interfaceLinksOut[i].speed;
                             }
-                        }
-                        else{
-                            if (d.target.topologyId == interfaceLinksOut[i].topologyId) {
-                                load = interfaceLinksOut[i].load;
-                                speed = interfaceLinksOut[i].speed;
-                            }
-                        }
                     }
                     break;
                 }
                 case ("interfaceIn") :{
                     for (var i = 0; i < interfaceLinksIn.length; i++) {
-                        if(d.target.dataId){
-                            if (d.target.dataId == interfaceLinksIn[i].topologyId){
+                            if (d.target.dataReferenceId == interfaceLinksIn[i].topologyId){
                                 load = interfaceLinksIn[i].load;
                                 speed = interfaceLinksIn[i].speed;
                             }
-                        }
-                        else{
-                            if (d.target.topologyId == interfaceLinksIn[i].topologyId) {
-                                load = interfaceLinksIn[i].load;
-                                speed = interfaceLinksIn[i].speed;
-                            }
-                        }
                     }
                     break;
                 }
@@ -239,7 +242,7 @@ function colorAndAnimateLinks(json) {
                 }
             }
                 l.transition()
-                 .duration(500)
+                 .duration(transitionLength)
                  .style("stroke", function (d) {
                         if(load >= 0) {
                             var intervalIndex = Math.floor(load * colors.intervals),
@@ -358,7 +361,11 @@ function getChildren(root) {
         if (node.children) node.children.forEach(recurse);
         //TODO temporary id assignment, should be omitted after json will be fetched from the database
         //if (/*!node.topologyId*/ node.physicalRole != "router") node.topologyId = generateId();
+        //node.topologyId = generateId();
+        //if it doesn't exist already, because we would be rewriting our own data otherwise
         if (!node.size) node.size = {"width": nodeSize, "height": nodeSize};
+        if (!node.dataReferenceId) node.dataReferenceId = node.topologyId;
+
         nodes.push(node);
     }
 
@@ -417,6 +424,9 @@ function routerNodeDblClickListener(d) {
             d.physicalRole = "router";
         }
         update();
+        /*To color new links immediately after creation, otherwise they would remain black until next timestamp or
+        to start animation again after update, otherwise links wouldnt move until next timestamp*/
+        colorAndAnimateLinks(linkUsage,0);
     }
 };
 
@@ -434,7 +444,7 @@ function lineMouseDownListener(d) {
         "name": null,
         "id" : null,
         "topologyId": generateId(),
-        "dataId": d.target.topologyId,        //TODO this only works for the first iteration of nodes, fix
+        "dataReferenceId": d.target.dataReferenceId,
         "address4" : null,
         "logicalRole": null,
         "physicalRole": "lineBreak",
@@ -459,6 +469,9 @@ function lineMouseDownListener(d) {
     d.target.parent = n;
 
     update();
+    //To color new links immediately after creation, otherwise they would remain black until next timestamp
+    colorAndAnimateLinks(linkUsage, 0);
+
     simulate(document.getElementById(n.topologyId), "mousedown", {pointerX: coordinates[0], pointerY: coordinates[1]});
 };
 
@@ -475,6 +488,8 @@ function lineBreakNodeDblClickListener(d) {
     });
 
     update();
+    //To start animation again after update, otherwise links wouldnt move until next timestamp
+    colorAndAnimateLinks(linkUsage, 0);
 };
 
 /**
