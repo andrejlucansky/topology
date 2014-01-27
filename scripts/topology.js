@@ -66,13 +66,6 @@ var link = svg.selectAll(".link"),
 var nodes,
     links;
 
-/*test();
-function test(){
-    var interval = window.setInterval(function(){
-        alert("interval skoncil");
-    }, 1000);
-    //window.clearInterval(interval);
-}*/
 d3.json(timestampsConnectionString, function(json){
     timestamps = json.timestamps;
 });
@@ -91,10 +84,7 @@ function update() {
     createLinks();
     createNodes();
 
-    //start animation
-    //slide();
-
-    //start simulation
+    //start force graph simulation
     force.nodes(nodes)
         .links(links)
         .start();
@@ -127,13 +117,12 @@ function createLinks(){
         //set additional properties for original links
         l.topologyId = l.target.topologyId + "In";
         l.type = "interfaceIn";
-        l.visible = true;
 
         //create link in opposite direction
-        links.push({"source": l.source, "target": l.target, "type": "interfaceOut", "visible" : true, "topologyId":  l.target.topologyId + "Out"});
+        links.push({"source": l.source, "target": l.target, "type": "interfaceOut", "topologyId":  l.target.topologyId + "Out"});
 
         //add invisible overlay link to the list
-        links.push({"source": l.source, "target": l.target, "type": "overlay", "visible": false, "topologyId":  l.target.topologyId + "Overlay"});
+        links.push({"source": l.source, "target": l.target, "type": "overlay", "topologyId":  l.target.topologyId + "Overlay"});
     });
 
     //add links which are between routers
@@ -141,14 +130,9 @@ function createLinks(){
         var source = findNodeById(l.source),
             target = findNodeById(l.target);
 
-        links.push({"source": source, "target": target, "type": "routerToRouter", "visible" : true, "topologyId": l.id});
+        links.push({"source": source, "target": target, "type": "routerToRouter", "topologyId": l.id});
         //links.push({"source": target, "target": source, "type": "routerToRouter", "topologyId": generateId()});
     })
-
-    //add invisible overlay link on all links
-/*    links.forEach(function(d){
-        links.push({"source": d.source, "target": d.target, "type": d.type, "visible": false, "topologyId": generateId()});
-    });*/
 
     link = link.data(links, function (d) {
         return d.topologyId;
@@ -158,7 +142,7 @@ function createLinks(){
 
     link.enter()
         .insert("line", ".node")
-        .attr("class", function(d){var visibility = d.visible ? "visible" : "invisible"; return "link " + d.type + " " + visibility;})
+        .attr("class", function(d){return "link " + d.type;})
         .attr("sourceid", function (d) {
             return d.source.topologyId;
         })
@@ -253,7 +237,7 @@ function colorAndAnimateLinks(json, transitionLength) {
                             return "rgba(255,255,255,0)";
                  });
 
-            if(d.visible){     //TODO toto nepotrebujeme, chcelo by to nejak zmenit aby to vynechavalo invis linky
+            if(d.type != "overlay"){
                 window.clearInterval(d.interval);
                 d.interval = window.setInterval(function(){
                     l.style("stroke-dasharray", function(d){
@@ -426,7 +410,8 @@ function routerNodeDblClickListener(d) {
         update();
         /*To color new links immediately after creation, otherwise they would remain black until next timestamp or
         to start animation again after update, otherwise links wouldnt move until next timestamp*/
-        colorAndAnimateLinks(linkUsage,0);
+        if(linkUsage)
+            colorAndAnimateLinks(linkUsage,0);
     }
 };
 
@@ -443,6 +428,7 @@ function lineMouseDownListener(d) {
     var n = {
         "name": null,
         "id" : null,
+
         "topologyId": generateId(),
         "dataReferenceId": d.target.dataReferenceId,
         "address4" : null,
@@ -470,7 +456,8 @@ function lineMouseDownListener(d) {
 
     update();
     //To color new links immediately after creation, otherwise they would remain black until next timestamp
-    colorAndAnimateLinks(linkUsage, 0);
+    if(linkUsage)
+        colorAndAnimateLinks(linkUsage, 0);
 
     simulate(document.getElementById(n.topologyId), "mousedown", {pointerX: coordinates[0], pointerY: coordinates[1]});
 };
@@ -489,7 +476,8 @@ function lineBreakNodeDblClickListener(d) {
 
     update();
     //To start animation again after update, otherwise links wouldnt move until next timestamp
-    colorAndAnimateLinks(linkUsage, 0);
+    if(linkUsage)
+        colorAndAnimateLinks(linkUsage, 0);
 };
 
 /**
@@ -597,7 +585,8 @@ function getVectorDirection(type, direction){
         //every interfaceIn line should be aligned to the right from the source and to the left from the target side
         case "interfaceIn":
              if (direction == "out")
-                result = "right";                                                     else
+                result = "right";
+             else
                 result = "left";
             break;
         //every interfaceOut line should be aligned to the left from the source and to the right from the target side
