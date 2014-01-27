@@ -189,7 +189,22 @@ function startSimulation(){
         });
 
         d3.json(logicalRolesConnectionString + "?absoluteTimestamp=" + timestamps[timestampIndex], function(json){
-           //nodes.
+           var interfaces = svg.selectAll(".node");
+           interfaces.each(function(d){
+                var role = d3.select(this).selectAll(".role")
+                    .attr("xlink:href", function (d) {
+                        for (var i = 0; i < json.interfaceRoles.length; i++) {
+                            if (d.topologyId == json.interfaceRoles[i].topologyId && json.interfaceRoles[i].role != "idle"){
+                                    return imagePath + json.interfaceRoles[i].role + ".svg";
+                                else
+                                    return null;
+                        }
+                        }
+                    });
+           })
+
+
+
         });
         timestampIndex += 1;
 
@@ -331,6 +346,7 @@ function createNodes(){
             if(d.logicalRole != null)
                 return imagePath + d.logicalRole + ".svg";
         })
+        .attr("class", "role")
         .attr("x", function (d) {
             return d.size.width / 2;
         })
@@ -381,10 +397,6 @@ function zoom(){
     scale = d3.event.scale;
     translate = d3.event.translate;
     scaledNormalLength = defaultNormalLength / scale;
-    svg.selectAll(".test").attr("transform",
-        "translate(" + translate + ")"
-            + " scale(" + scale + ")");
-
     tick();
 }
 
@@ -392,7 +404,7 @@ var routerNodeDragListener =
     d3.behavior.drag()
         .on("dragstart", function(d){
             d.fixed = true;
-            d3.select(this).classed("fixed", true)
+            d3.select(this).classed("fixed", true);
             d3.event.sourceEvent.stopPropagation();
         })
         .on("drag", function(d){
