@@ -195,9 +195,7 @@ function startSimulation(){
                     .attr("xlink:href", function (d) {
                         for (var i = 0; i < json.interfaceRoles.length; i++) {
                             if (d.topologyId == json.interfaceRoles[i].topologyId && json.interfaceRoles[i].role != "idle"){
-                                    return imagePath + json.interfaceRoles[i].role + ".svg";
-                                else
-                                    return null;
+                                return imagePath + json.interfaceRoles[i].role + ".svg";
                         }
                         }
                     });
