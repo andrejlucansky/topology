@@ -66,6 +66,12 @@ var link = svg.selectAll(".link"),
 var nodes,
     links;
 
+//on pressing Esc, stop simulation.
+window.onkeydown = function(event){
+    if(event.keyCode == 27)
+        stopSimulation();
+};
+
 d3.json(timestampsConnectionString, function(json){
     timestamps = json.timestamps;
 });
@@ -173,7 +179,17 @@ function startSimulation(){
     simulationInterval = window.setInterval(function(){
         d3.json(linkUsageConnectionString + "?timestamp=" + timestamps[timestampIndex], function (json) {
             linkUsage = json;
-            colorAndAnimateLinks(json, 500);
+
+            link.each(function (d) {
+                var l = d3.select(this);
+                getLinkUsage(d, linkUsage);
+                colorLink(l,d, 500);
+                animateLink(l,d);
+            });
+        });
+
+        d3.json(logicalRolesConnectionString + "?absoluteTimestamp=" + timestamps[timestampIndex], function(json){
+           //nodes.
         });
         timestampIndex += 1;
 
@@ -182,71 +198,73 @@ function startSimulation(){
     }, simulationIntervalLength);
 }
 
-function colorAndAnimateLinks(json, transitionLength) {
-        var routerLinks = json.routerLinks,
-            interfaceLinksIn = json.interfaceLinksIn,
-            interfaceLinksOut = json.interfaceLinksOut;
+function stopSimulation(){
+    links.forEach(function(d){
+        window.clearInterval(d.interval);
+        window.clearInterval(simulationInterval);
+    })
+}
 
-        link.each(function (d) {
-            var l = d3.select(this),
-                load,
-                speed;
-
-            switch (d.type) {
-                case ("routerToRouter"): {
-                    for (var i = 0; i < routerLinks.length; i++) {
-                        if (d.topologyId == routerLinks[i].id){
-                            load = routerLinks[i].load;
-                            speed = routerLinks[i].speed;
-                        }
-                    }
-                    break;
-                }
-                case ("interfaceOut"):{
-                    for (var i = 0; i < interfaceLinksOut.length; i++) {
-                            if (d.target.dataReferenceId == interfaceLinksOut[i].topologyId){
-                                load = interfaceLinksOut[i].load;
-                                speed = interfaceLinksOut[i].speed;
-                            }
-                    }
-                    break;
-                }
-                case ("interfaceIn") :{
-                    for (var i = 0; i < interfaceLinksIn.length; i++) {
-                            if (d.target.dataReferenceId == interfaceLinksIn[i].topologyId){
-                                load = interfaceLinksIn[i].load;
-                                speed = interfaceLinksIn[i].speed;
-                            }
-                    }
-                    break;
-                }
-                default : {
-                    load = -1;
-                    speed = 0;
+function getLinkUsage(datum, json) {
+    switch (datum.type) {
+        case ("routerToRouter"): {
+            for (var i = 0; i < json.routerLinks.length; i++) {
+                if (datum.topologyId == json.routerLinks[i].id){
+                    datum.load = json.routerLinks[i].load;
+                    datum.speed = json.routerLinks[i].speed;
                 }
             }
-                l.transition()
-                 .duration(transitionLength)
-                 .style("stroke", function (d) {
-                        if(load >= 0) {
-                            var intervalIndex = Math.floor(load * colors.intervals),
-                                color =  d.colorScale.paint(intervalIndex);
-                            return color;
-                        }
-                        else
-                            return "rgba(255,255,255,0)";
-                 });
-
-            if(d.type != "overlay"){
-                window.clearInterval(d.interval);
-                d.interval = window.setInterval(function(){
-                    l.style("stroke-dasharray", function(d){
-                        style = d.animation.start(this, d.type);
-                        return style;
-                    });
-                }, (defaultSpeed - (l.datum().animation.speed * speed)));
+            break;
+        }
+        case ("interfaceOut"):{
+            for (var i = 0; i < json.interfaceLinksOut.length; i++) {
+                if (datum.target.dataReferenceId == json.interfaceLinksOut[i].topologyId){
+                    datum.load = json.interfaceLinksOut[i].load;
+                    datum.speed = json.interfaceLinksOut[i].speed;
+                }
             }
+            break;
+        }
+        case ("interfaceIn") :{
+            for (var i = 0; i < json.interfaceLinksIn.length; i++) {
+                if (datum.target.dataReferenceId == json.interfaceLinksIn[i].topologyId){
+                    datum.load = json.interfaceLinksIn[i].load;
+                    datum.speed = json.interfaceLinksIn[i].speed;
+                }
+            }
+            break;
+        }
+        default : {
+            datum.load = -1;
+            datum.speed = 0;
+        }
+    }
+}
+
+function colorLink(link, datum, transitionLength){
+    link.transition()
+        .duration(transitionLength)
+        .style("stroke", function () {
+            if(datum.load >= 0) {
+                var intervalIndex = Math.floor(datum.load * colors.intervals),
+                    color =  datum.colorScale.paint(intervalIndex);
+                return color;
+            }
+            else
+                return "rgba(255,255,255,0)";
         });
+}
+
+function animateLink(link, datum) {
+    if (datum.type != "overlay") {
+        window.clearInterval(datum.interval);
+        datum.interval = window.setInterval(function () {
+            link.style("stroke-dasharray", function () {
+                var style = datum.animation.start(this, datum.type);
+                return style;
+            });
+        }, (defaultSpeed - (datum.animation.speed * datum.speed)));
+    }
 }
 
 function createNodes(){
@@ -343,7 +361,6 @@ function getChildren(root) {
 
     function recurse(node) {
         if (node.children) node.children.forEach(recurse);
-        //TODO temporary id assignment, should be omitted after json will be fetched from the database
         //if (/*!node.topologyId*/ node.physicalRole != "router") node.topologyId = generateId();
         //node.topologyId = generateId();
         //if it doesn't exist already, because we would be rewriting our own data otherwise
@@ -407,11 +424,18 @@ function routerNodeDblClickListener(d) {
             d._children = null;
             d.physicalRole = "router";
         }
+
         update();
         /*To color new links immediately after creation, otherwise they would remain black until next timestamp or
-        to start animation again after update, otherwise links wouldnt move until next timestamp*/
-        if(linkUsage)
-            colorAndAnimateLinks(linkUsage,0);
+        to start animation again after update, otherwise links wouldn't move until next timestamp*/
+        if(linkUsage) {
+            link.each(function (d) {
+                var l = d3.select(this);
+                getLinkUsage(d, linkUsage);
+                colorLink(l,d, 0);
+                animateLink(l,d);
+            });
+        }
     }
 };
 
@@ -456,8 +480,13 @@ function lineMouseDownListener(d) {
 
     update();
     //To color new links immediately after creation, otherwise they would remain black until next timestamp
-    if(linkUsage)
-        colorAndAnimateLinks(linkUsage, 0);
+    if(linkUsage) {
+        link.each(function (d) {
+            var l = d3.select(this);
+            getLinkUsage(d, linkUsage);
+            colorLink(l,d, 0);
+        });
+    }
 
     simulate(document.getElementById(n.topologyId), "mousedown", {pointerX: coordinates[0], pointerY: coordinates[1]});
 };
@@ -475,9 +504,14 @@ function lineBreakNodeDblClickListener(d) {
     });
 
     update();
-    //To start animation again after update, otherwise links wouldnt move until next timestamp
-    if(linkUsage)
-        colorAndAnimateLinks(linkUsage, 0);
+    //To start animation again after update, otherwise links wouldn't move until next timestamp
+    if(linkUsage){
+        link.each(function (d) {
+            var l = d3.select(this);
+            getLinkUsage(d, linkUsage);
+            animateLink(l,d);
+        });
+    }
 };
 
 /**
