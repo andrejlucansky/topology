@@ -72,6 +72,42 @@ window.onkeydown = function(event){
         stopSimulation();
 };
 
+/*function test(){
+    var hodiny = new Stopwatch();
+
+    console.log(hodiny.duration());
+    hodiny.start();
+    window.setTimeout(function(){
+        console.log(hodiny.duration());
+        hodiny.stop();
+    },2000);
+    window.setTimeout(function(){
+        console.log(hodiny.stopTime);
+    },5000);
+}*/
+
+/*function test(){
+    var stopwatch = new Worker("../scripts/stopwatch.js");
+    var log = [];
+    stopwatch.onmessage = function(oEvent){
+        log.push(oEvent.data);
+    }
+    stopwatch.postMessage("");
+
+    var interval = window.setInterval(function(){
+        stopwatch.postMessage("");
+    }, 100);
+
+    window.setTimeout(function(){
+        clearInterval(interval);
+        for(var i = 0; i < log.length; i++){
+            console.log(log[i]);
+        }
+    }, 20000);
+}*/
+
+test();
+
 d3.json(timestampsConnectionString, function(json){
     timestamps = json.timestamps;
 });
@@ -266,6 +302,51 @@ function colorLink(link, datum, transitionLength){
             else
                 return "rgba(255,255,255,0)";
         });
+}
+
+function animateLink2(link, datum){
+    if (datum.type != "overlay") {
+        datum.interval = window.setInterval(function(){
+
+            if(!datum.stopwatch)
+                datum.stopwatch = new Stopwatch();
+            datum.stopwatch.reset();
+            datum.stopwatch.start();
+
+/*            if(!datum.stopwatch)
+                datum.stopwatch = new Worker("stopwatch.js");
+            datum.stopwatch.onmessage = function(oEvent){
+                console.log(oEvent.data);
+            }
+            datum.stopwatch.postMessage("");*/
+
+            link.style("stroke-dasharray", function () {
+                var style = datum.animation.start(this, datum.type);
+                return style;
+            });
+        }, (defaultSpeed - (datum.animation.speed * datum.speed)));
+    }
+}
+
+function Stopwatch(){
+    this.startTime = null;
+    this.stopTime = null;
+
+    this.start = function(){
+        this.startTime = new Date().getTime();
+    }
+
+    this.stop = function(){
+        this.stopTime = this.duration();
+    }
+
+    this.duration = function(){
+        var now = new Date().getTime();
+        if(this.startTime)
+            return now - this.startTime;
+        else
+            return 0;
+    }
 }
 
 function animateLink(link, datum) {
