@@ -1,33 +1,57 @@
 function Stopwatch(){
-    this.duration = 0;
-    this.interval = null;
-
-    this.startTime = new Date().getTime();
+    this.startTime = null;
+    this.stopTime = null;
 
     this.start = function(){
-        this.inteval = setInterval((function(stopwatch){
-            return function(){
-                stopwatch.duration++;
-            }
-        })(this),50);
+        this.startTime = new Date().getTime();
     }
 
-    this.stop = function(stopwatch){
-        clearInterval(this.interval);
+    this.stop = function(){
+        this.stopTime = this.duration();
     }
 
-    this.reset = function(){
-        this.duration = 0;
+    this.duration = function(){
+        var now = new Date().getTime();
+        if(this.startTime)
+            return now - this.startTime;
+        else
+            return 0;
     }
 }
+
 var stopwatch = new Stopwatch();
-setTimeout(function(){
-
-    stopwatch.start();
-
-}, 5000);
-
 
 onmessage = function (oEvent) {
-    postMessage(stopwatch.duration*50);
+    switch (oEvent.data)
+    {
+        case "restart":
+        {
+            stopwatch.start();
+           // postMessage("Stopwatch restarted");
+            break;
+        }
+        case "start":
+        {
+            stopwatch.start();
+            //postMessage("Stopwatch started");
+            break;
+        }
+        case "duration":
+        {
+            postMessage(stopwatch.duration());
+            break;
+        }
+        case "stop":
+        {
+            stopwatch.stop();
+            postMessage("Stopwatch stopped");
+            break;
+        }
+        case "stopTime":
+            postMessage(stopwatch.stopTime);
+        case "startTime":
+            postMessage(stopwatch.startTIme);
+        default :
+            postMessage("Wrong input");
+    }
 };

@@ -72,42 +72,6 @@ window.onkeydown = function(event){
         stopSimulation();
 };
 
-/*function test(){
-    var hodiny = new Stopwatch();
-
-    console.log(hodiny.duration());
-    hodiny.start();
-    window.setTimeout(function(){
-        console.log(hodiny.duration());
-        hodiny.stop();
-    },2000);
-    window.setTimeout(function(){
-        console.log(hodiny.stopTime);
-    },5000);
-}*/
-
-/*function test(){
-    var stopwatch = new Worker("../scripts/stopwatch.js");
-    var log = [];
-    stopwatch.onmessage = function(oEvent){
-        log.push(oEvent.data);
-    }
-    stopwatch.postMessage("");
-
-    var interval = window.setInterval(function(){
-        stopwatch.postMessage("");
-    }, 100);
-
-    window.setTimeout(function(){
-        clearInterval(interval);
-        for(var i = 0; i < log.length; i++){
-            console.log(log[i]);
-        }
-    }, 20000);
-}*/
-
-test();
-
 d3.json(timestampsConnectionString, function(json){
     timestamps = json.timestamps;
 });
@@ -118,6 +82,21 @@ d3.json(topologyConnectionString, function (json) {
     //paintLines();
     startSimulation();
 });
+
+//this function could return node index in nodes array, but it easier to return whole node reference
+function findNodeById(topologyId) {
+    for (var i = 0; i < nodes.length; i++) {
+        if (nodes[i].topologyId == topologyId)
+            return nodes[i];
+    }
+}
+
+function end() {
+    for (var i = 0; i < nodes.length; i++) {
+        nodes[i].fixed = true;
+    }
+    d3.selectAll(".node").classed("fixed", true);
+}
 
 function update() {
     nodes = getChildren(root),
@@ -203,6 +182,8 @@ function createLinks(){
         //activate animation
         d.animation = new Animation();
         d.animation.speed = 1055;
+        d.previousSpeed = 0;
+        d.speed = 0;
 
         //color lines
         d.colorScale = new RGBScale(colors);
@@ -260,6 +241,7 @@ function getLinkUsage(datum, json) {
             for (var i = 0; i < json.routerLinks.length; i++) {
                 if (datum.topologyId == json.routerLinks[i].id){
                     datum.load = json.routerLinks[i].load;
+                    datum.previousSpeed = datum.speed;
                     datum.speed = json.routerLinks[i].speed;
                 }
             }
@@ -269,7 +251,8 @@ function getLinkUsage(datum, json) {
             for (var i = 0; i < json.interfaceLinksOut.length; i++) {
                 if (datum.target.dataReferenceId == json.interfaceLinksOut[i].topologyId){
                     datum.load = json.interfaceLinksOut[i].load;
-                    datum.speed = json.interfaceLinksOut[i].speed;
+                    datum.previousSpeed = datum.speed;
+                    datum.speed = json.routerLinks[i].speed;
                 }
             }
             break;
@@ -278,13 +261,15 @@ function getLinkUsage(datum, json) {
             for (var i = 0; i < json.interfaceLinksIn.length; i++) {
                 if (datum.target.dataReferenceId == json.interfaceLinksIn[i].topologyId){
                     datum.load = json.interfaceLinksIn[i].load;
-                    datum.speed = json.interfaceLinksIn[i].speed;
+                    datum.previousSpeed = datum.speed;
+                    datum.speed = json.routerLinks[i].speed;
                 }
             }
             break;
         }
         default : {
             datum.load = -1;
+            datum.previousSpeed = datum.speed;
             datum.speed = 0;
         }
     }
@@ -304,52 +289,62 @@ function colorLink(link, datum, transitionLength){
         });
 }
 
-function animateLink2(link, datum){
+function animateLink(link, datum){
     if (datum.type != "overlay") {
+        if(!datum.stopwatch)
+            datum.stopwatch = new Stopwatch();
+
+        if (datum.previousSpeed != datum.speed) {
+            window.clearInterval(datum.interval);
+            datum.stopwatch.stop();
+
+            var time = (defaultSpeed - (datum.animation.speed * datum.speed));
+            window.setTimeout(function(){
+                link.style("stroke-dasharray", function () {
+                    var style = datum.animation.start(this, datum.type);
+                    return style;
+                });
+
+                datum.stopwatch.start();
+                datum.interval = window.setInterval(function () {
+                    link.style("stroke-dasharray", function () {
+                        var style = datum.animation.start(this, datum.type);
+                        return style;
+                    });
+
+                    datum.stopwatch.start();
+                }, (defaultSpeed - (datum.animation.speed * datum.speed)));
+            }, Math.max(time - datum.stopTime, 0));
+        }
+    }
+}
+
+/*function animateLink(link, datum){
+    if (datum.type != "overlay") {
+        if(!datum.stopwatch)
+            datum.stopwatch = new Worker("../scripts/stopwatch.js");
+
+        datum.stopwatch.addEventListener("message", function(oEvent){
+            log.push(oEvent.data);
+        });
+
+        window.clearInterval(datum.interval);
+        var time = defaultSpeed - (datum.animation.speed * datum.speed);
+
+        datum.stopwatch.postMessage("start");
         datum.interval = window.setInterval(function(){
-
-            if(!datum.stopwatch)
-                datum.stopwatch = new Stopwatch();
-            datum.stopwatch.reset();
-            datum.stopwatch.start();
-
-/*            if(!datum.stopwatch)
-                datum.stopwatch = new Worker("stopwatch.js");
-            datum.stopwatch.onmessage = function(oEvent){
-                console.log(oEvent.data);
-            }
-            datum.stopwatch.postMessage("");*/
-
+            datum.stopwatch.postMessage({t:time});
             link.style("stroke-dasharray", function () {
                 var style = datum.animation.start(this, datum.type);
                 return style;
             });
+
+            datum.stopwatch.postMessage("restart");
         }, (defaultSpeed - (datum.animation.speed * datum.speed)));
     }
-}
+}*/
 
-function Stopwatch(){
-    this.startTime = null;
-    this.stopTime = null;
-
-    this.start = function(){
-        this.startTime = new Date().getTime();
-    }
-
-    this.stop = function(){
-        this.stopTime = this.duration();
-    }
-
-    this.duration = function(){
-        var now = new Date().getTime();
-        if(this.startTime)
-            return now - this.startTime;
-        else
-            return 0;
-    }
-}
-
-function animateLink(link, datum) {
+/*function animateLink(link, datum) {
     if (datum.type != "overlay") {
         window.clearInterval(datum.interval);
         datum.interval = window.setInterval(function () {
@@ -359,7 +354,7 @@ function animateLink(link, datum) {
             });
         }, (defaultSpeed - (datum.animation.speed * datum.speed)));
     }
-}
+}*/
 
 function createNodes(){
     node = node.data(nodes, function (d) {
@@ -576,6 +571,7 @@ function lineMouseDownListener(d) {
             var l = d3.select(this);
             getLinkUsage(d, linkUsage);
             colorLink(l,d, 0);
+            animateLink(l,d);
         });
     }
 
@@ -736,26 +732,25 @@ function getVectorDirection(type, direction){
     return result;
 }
 
-//this function could return node index in nodes array, but it easier to return whole node reference
-function findNodeById(topologyId) {
-    for (var i = 0; i < nodes.length; i++) {
-        if (nodes[i].topologyId == topologyId)
-            return nodes[i];
-    }
-}
+function Stopwatch(){
+    this.startTime = null;
+    this.stopTime = null;
 
-function end() {
-    for (var i = 0; i < nodes.length; i++) {
-        nodes[i].fixed = true;
+    this.start = function(){
+        this.startTime = new Date().getTime();
     }
-    d3.selectAll(".node").classed("fixed", true);
-}
 
-function generateId() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-    });
+    this.stop = function(){
+        this.stopTime = this.duration();
+    }
+
+    this.duration = function(){
+        var now = new Date().getTime();
+        if(this.startTime)
+            return now - this.startTime;
+        else
+            return 0;
+    }
 }
 
 function Animation() {
@@ -800,6 +795,13 @@ function RGBScale(colors){
             return this.end - (this.intervalLength() * (intervalIndex > (intervals - 1)  ? (intervals - 1) : intervalIndex));
         }
     }
+}
+
+function generateId() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
 }
 
 function simulate(element, eventName) {
@@ -878,68 +880,3 @@ function computeParallelism(segment1, segment2) {
     //compare ratio of first and second part of direction vectors rounded to 1 decimal number
     return roundNumber(u1 / v1, 1) == roundNumber(u2 / v2, 1);
 }
-
-function testArrayRemove() {
-    pole = [1, 2, 3, 4, 5];
-
-    pole.forEach(function (d) {
-        console.log("Prvok: " + d);
-        if (d == 3 || d == 4) {
-            console.log("mazem" + d);
-
-            pole.splice(2, 1);
-        }
-    });
-
-    pole = [1, 2, 3, 4, 5];
-    var i = 0;
-
-    while (i < pole.length) {
-        console.log("Prvok: " + pole[i]);
-        if (pole[i] == 3 || pole[i] == 4) {
-            console.log("mazem" + pole[i]);
-            pole.splice(2, 1);
-        }
-        else
-            i++;
-    }
-}
-
-/* function slide(){
- var l = d3.select(this);
- l.interval = window.setInterval(function(){
- l.style("stroke-dasharray", function(d){
- return d.animation.start(this, d.type);
- })
- }, l.datum().animation.speed)
- }
-
-function slide(){
-    link.each(function(d){
-        var l = d3.select(this);
-        if(d.visible)
-            l.interval = window.setInterval(function(){
-                l.style("stroke-dasharray", function(d){
-                    style = d.animation.start(this, d.type);
-                    return style;
-                });
-            }, l.datum().animation.speed);
-    })
-}
-
-function paintLines(){
-    window.setInterval(function(){
-        //change colour based on trafic
-        link.transition()
-            .duration(4000)
-            .style("stroke", function (d) {
-                if(d.visible){
-                    var intervalIndex = Math.floor((d.load / d.bandwidth) * colors.intervals);
-                    return d.colorScale.paint(Math.min(Math.floor(Math.random()*10),4));
-                }
-                else
-                    return "rgba(255,255,255,0)";
-            });
-
-    },5000);
-}    */
