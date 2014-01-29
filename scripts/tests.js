@@ -50,3 +50,28 @@ function arrayRemoveTest() {
             i++;
     }
 }
+
+/*function animateLink(link, datum){
+ if (datum.type != "overlay") {
+ if(!datum.stopwatch)
+ datum.stopwatch = new Worker("../scripts/stopwatch.js");
+
+ datum.stopwatch.addEventListener("message", function(oEvent){
+ log.push(oEvent.data);
+ });
+
+ window.clearInterval(datum.interval);
+ var time = defaultSpeed - (datum.animation.speed * datum.speed);
+
+ datum.stopwatch.postMessage("start");
+ datum.interval = window.setInterval(function(){
+ datum.stopwatch.postMessage({t:time});
+ link.style("stroke-dasharray", function () {
+ var style = datum.animation.start(this, datum.type);
+ return style;
+ });
+
+ datum.stopwatch.postMessage("restart");
+ }, (defaultSpeed - (datum.animation.speed * datum.speed)));
+ }
+ }*/

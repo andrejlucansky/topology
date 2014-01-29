@@ -191,9 +191,13 @@ function createLinks(){
 }
 
 function startSimulation(){
-    var timestampIndex = 0;
+    var timestampIndex = -1;
 
     simulationInterval = window.setInterval(function(){
+        timestampIndex++;
+        if(timestampIndex >= timestamps.length - 1)
+            window.clearInterval(simulationInterval);
+
         d3.json(linkUsageConnectionString + "?timestamp=" + timestamps[timestampIndex], function (json) {
             linkUsage = json;
 
@@ -203,6 +207,8 @@ function startSimulation(){
                 colorLink(l,d, 500);
                 animateLink(l,d);
             });
+
+            getStats(timestampIndex);
         });
 
         d3.json(logicalRolesConnectionString + "?absoluteTimestamp=" + timestamps[timestampIndex], function(json){
@@ -217,15 +223,40 @@ function startSimulation(){
                         }
                     });
            })
-
-
-
-        });
-        timestampIndex += 1;
-
-        if(timestampIndex >= timestamps.length)
-            window.clearInterval(simulationInterval);
+       });
     }, simulationIntervalLength);
+}
+
+function getStats(timestampIndex){
+    d3.selectAll("#timestamp").text("Timestamp: " + timestamps[timestampIndex]);
+    var big = {speed:0};
+    linkUsage.routerLinks.forEach(function(n){
+        if(n.speed > big.speed)
+            big = n;
+    });
+    linkUsage.interfaceLinksIn.forEach(function(n){
+        if(n.speed > big.speed)
+        {
+            big = n;
+            big.type = "interfaceIn";
+        }
+    });
+    linkUsage.interfaceLinksOut.forEach(function(n){
+        if(n.speed > big.speed)
+        {
+            big = n;
+            big.type = "interfaceOut";
+        }
+    });
+
+    links.forEach(function(l){
+        if( big.topologyId && l.target.topologyId == big.topologyId)
+            d3.selectAll("#speed").text("Fastest link: " + l.target.name + " " + big.type  + " with speed " + big.speed);
+        else{
+            if(big.id == l.topologyId)
+                d3.selectAll("#speed").text("Fastest link: " + l.source.name + " to " + l.target.name + " with speed " + big.speed);
+        }
+    });
 }
 
 function stopSimulation(){
@@ -318,43 +349,6 @@ function animateLink(link, datum){
         }
     }
 }
-
-/*function animateLink(link, datum){
-    if (datum.type != "overlay") {
-        if(!datum.stopwatch)
-            datum.stopwatch = new Worker("../scripts/stopwatch.js");
-
-        datum.stopwatch.addEventListener("message", function(oEvent){
-            log.push(oEvent.data);
-        });
-
-        window.clearInterval(datum.interval);
-        var time = defaultSpeed - (datum.animation.speed * datum.speed);
-
-        datum.stopwatch.postMessage("start");
-        datum.interval = window.setInterval(function(){
-            datum.stopwatch.postMessage({t:time});
-            link.style("stroke-dasharray", function () {
-                var style = datum.animation.start(this, datum.type);
-                return style;
-            });
-
-            datum.stopwatch.postMessage("restart");
-        }, (defaultSpeed - (datum.animation.speed * datum.speed)));
-    }
-}*/
-
-/*function animateLink(link, datum) {
-    if (datum.type != "overlay") {
-        window.clearInterval(datum.interval);
-        datum.interval = window.setInterval(function () {
-            link.style("stroke-dasharray", function () {
-                var style = datum.animation.start(this, datum.type);
-                return style;
-            });
-        }, (defaultSpeed - (datum.animation.speed * datum.speed)));
-    }
-}*/
 
 function createNodes(){
     node = node.data(nodes, function (d) {
