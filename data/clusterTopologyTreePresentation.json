@@ -12,7 +12,7 @@
                     "id" : "0",
                     "topologyId" : "i_0",
                     "physicalRole" : "computer",
-                    "logicalRole" : "wolf",
+                    "logicalRole" : "bot",
                     "name" : "Computer 1",
                     "address4" : "147.251.0.10/24"
                 },
@@ -20,28 +20,28 @@
                     "id" : "1",
                     "topologyId" : "i_1",
                     "physicalRole" : "computer",
-                    "logicalRole" : "wolf",
+                    "logicalRole" : "bot",
                     "name" : "Computer 2",
                     "address4" : "147.251.0.11/24"
                 },                {
                     "id" : "2",
                     "topologyId" : "i_2",
                     "physicalRole" : "computer",
-                    "logicalRole" : "wolf",
+                    "logicalRole" : "bot",
                     "name" : "Computer 3",
                     "address4" : "147.251.0.12/24"
                 },                {
                     "id" : "3",
                     "topologyId" : "i_3",
                     "physicalRole" : "computer",
-                    "logicalRole" : "wolf",
+                    "logicalRole" : "bot",
                     "name" : "Computer 4",
                     "address4" : "147.251.0.13/24"
                 },                {
                     "id" : "4",
                     "topologyId" : "i_4",
                     "physicalRole" : "computer",
-                    "logicalRole" : "wolf",
+                    "logicalRole" : "bot",
                     "name" : "Computer 5",
                     "address4" : "147.251.0.14/24"
                 }
@@ -59,28 +59,28 @@
                     "id" : "5",
                     "topologyId" : "i_5",
                     "physicalRole" : "computer",
-                    "logicalRole" : "wolf",
+                    "logicalRole" : "bot",
                     "name" : "Computer 6",
                     "address4" : "147.251.0.20/24"
                 },                {
                     "id" : "6",
                     "topologyId" : "i_6",
                     "physicalRole" : "computer",
-                    "logicalRole" : "wolf",
+                    "logicalRole" : "bot",
                     "name" : "Computer 7",
                     "address4" : "147.251.0.21/24"
                 },                {
                     "id" : "7",
                     "topologyId" : "i_7",
                     "physicalRole" : "computer",
-                    "logicalRole" : "wolf",
+                    "logicalRole" : "bot",
                     "name" : "Computer 8",
                     "address4" : "147.251.0.22/24"
                 },                {
                     "id" : "8",
                     "topologyId" : "i_8",
                     "physicalRole" : "computer",
-                    "logicalRole" : "wolf",
+                    "logicalRole" : "bot",
                     "name" : "Computer 9",
                     "address4" : "147.251.0.23/24"
                 }
@@ -98,28 +98,28 @@
                     "id" : "9",
                     "topologyId" : "i_9",
                     "physicalRole" : "computer",
-                    "logicalRole" : "wolf",
+                    "logicalRole" : "bot",
                     "name" : "Computer 10",
                     "address4" : "147.251.0.30/24"
                 },                {
                     "id" : "10",
                     "topologyId" : "i_10",
                     "physicalRole" : "computer",
-                    "logicalRole" : "wolf",
+                    "logicalRole" : "bot",
                     "name" : "Computer 11",
                     "address4" : "147.251.0.31/24"
                 },                {
                     "id" : "11",
                     "topologyId" : "i_11",
                     "physicalRole" : "computer",
-                    "logicalRole" : "wolf",
+                    "logicalRole" : "bot",
                     "name" : "Computer 12",
                     "address4" : "147.251.0.32/24"
                 },                {
                     "id" : "12",
                     "topologyId" : "i_12",
                     "physicalRole" : "computer",
-                    "logicalRole" : "wolf",
+                    "logicalRole" : "bot",
                     "name" : "Computer 13",
                     "address4" : "147.251.0.33/24"
                 },
@@ -127,28 +127,28 @@
                     "id" : "13",
                     "topologyId" : "i_13",
                     "physicalRole" : "computer",
-                    "logicalRole" : "wolf",
+                    "logicalRole" : "bot",
                     "name" : "Computer 14",
                     "address4" : "147.251.0.34/24"
                 },                {
                     "id" : "14",
                     "topologyId" : "i_14",
                     "physicalRole" : "computer",
-                    "logicalRole" : "wolf",
+                    "logicalRole" : "bot",
                     "name" : "Computer 15",
                     "address4" : "147.251.0.35/24"
                 },                {
                     "id" : "15",
                     "topologyId" : "i_15",
                     "physicalRole" : "computer",
-                    "logicalRole" : "wolf",
+                    "logicalRole" : "bot",
                     "name" : "Computer 16",
                     "address4" : "147.251.0.36/24"
                 },                {
                     "id" : "16",
                     "topologyId" : "i_16",
                     "physicalRole" : "computer",
-                    "logicalRole" : "wolf",
+                    "logicalRole" : "bot",
                     "name" : "Computer 17",
                     "address4" : "147.251.0.37/24"
                 },
@@ -156,14 +156,14 @@
                     "id" : "17",
                     "topologyId" : "i_17",
                     "physicalRole" : "computer",
-                    "logicalRole" : "wolf",
+                    "logicalRole" : "bot",
                     "name" : "Computer 18",
                     "address4" : "147.251.0.38/24"
                 },                {
                     "id" : "18",
                     "topologyId" : "i_18",
                     "physicalRole" : "computer",
-                    "logicalRole" : "wolf",
+                    "logicalRole" : "bot",
                     "name" : "Computer 19",
                     "address4" : "147.251.0.39/24"
                 }
@@ -181,21 +181,21 @@
                     "id" : "19",
                     "topologyId" : "i_19",
                     "physicalRole" : "computer",
-                    "logicalRole" : "wolf",
+                    "logicalRole" : "bot",
                     "name" : "Computer 20",
                     "address4" : "147.251.0.40/24"
                 },                {
                     "id" : "20",
                     "topologyId" : "i_20",
                     "physicalRole" : "computer",
-                    "logicalRole" : "wolf",
+                    "logicalRole" : "bot",
                     "name" : "Computer 21",
                     "address4" : "147.251.0.41/24"
                 },                {
                     "id" : "21",
                     "topologyId" : "i_21",
                     "physicalRole" : "computer",
-                    "logicalRole" : "wolf",
+                    "logicalRole" : "bot",
                     "name" : "Computer 22",
                     "address4" : "147.251.0.42/24"
                 }
@@ -220,7 +220,26 @@
         {
             "id" : "3",
             "source" : "r_3",
+            "target" : "r_1"
+        },
+        {   "id" : "4",
+            "source" : "r_1",
+            "target" : "r_0"
+        },
+        {
+            "id" : "5",
+            "source" : "r_2",
+            "target" : "r_1"
+        },
+        {
+            "id" : "6",
+            "source" : "r_3",
             "target" : "r_2"
+        },
+        {
+            "id" : "7",
+            "source" : "r_1",
+            "target" : "r_3"
         }
     ]
 }

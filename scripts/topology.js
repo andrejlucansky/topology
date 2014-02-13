@@ -15,7 +15,8 @@ var width = parseInt(d3.select("svg").style("width")), //pre liferay
     simulationIntervalLength = 5000,
     defaultSpeed = 1105;
 
-var topologyConnectionString = "http://147.251.43.124:8080/visualisationdata-test/network/topology",
+var topologyConnectionString = "../data/clusterTopologyTreePresentation.json",
+    //topologyConnectionString = "http://147.251.43.124:8080/visualisationdata-test/network/topology",
     linkUsageConnectionString = "http://147.251.43.124:8080/visualisationdata-test/network/usage/link",
     logicalRolesConnectionString = "http://147.251.43.124:8080/visualisationdata-test/network/topology/logicalRoles",
     timestampsConnectionString = "http://147.251.43.124:8080/visualisationdata-test/time/all-timestamps";
@@ -42,8 +43,8 @@ var colors = {
     "intervals" : 5
 };
 
-var imagePath = "/Topology-portlet/images/", // pre liferay
-//var	imagePath = "../images/",  //pre testovanie
+//var imagePath = "/Topology-portlet/images/", // pre liferay
+var	imagePath = "../images/",  //pre testovanie
     imageType = "_transparent",
     imageFormat = ".svg";
 
@@ -84,14 +85,14 @@ svg.on("mousemove",function(){
     d3.selectAll("#event").text("event x: " + d3.event.x + " y: " + d3.event.y);
 });
 
-d3.json(timestampsConnectionString, function(json){
+/*d3.json(timestampsConnectionString, function(json){
     timestamps = json.timestamps;
-});
+});*/
 
 d3.json(topologyConnectionString, function (json) {
     root = json;
     update();
-    startSimulation();
+    //startSimulation();
 });
 
 //this function could return node index in nodes array, but it easier to return whole node reference
@@ -267,6 +268,10 @@ function createNodes(){
         .attr("xlink:href", function (d) {
             if(d.logicalRole != null)
                 return imagePath + d.logicalRole + ".svg";
+            else
+            {
+                d3.select(this).remove();
+            }
         })
         .attr("class", "role")
         .attr("x", function (d) {
