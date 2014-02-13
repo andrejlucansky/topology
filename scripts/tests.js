@@ -1,3 +1,15 @@
+function setLinePropertiesTest(){
+    var int = setInterval(function(){
+        update();
+        //To color new links immediately after creation, otherwise they would remain black until next timestamp
+        setLinkProperties(0);
+    }, 20);
+
+    window.setTimeout(function(){
+        window.clearInterval(int);
+    },5000);
+}
+
 function stopwatchTest() {
     var hodiny = new Stopwatch();
 

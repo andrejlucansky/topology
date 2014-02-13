@@ -1,5 +1,7 @@
-var width = window.innerWidth - 20,
-    height = window.innerHeight - 20,
+var width = parseInt(d3.select("svg").style("width")), //pre liferay
+	height = parseInt(d3.select("svg").style("height")), // pre liferay
+/*var width = window.innerWidth - 20, // pre testovanie
+	height = window.innerHeight - 20, // pre testovanie*/
     nodeSize = 48,
     lineBreakNodeSize = 10,
     defaultNormalLength = 2,
@@ -18,6 +20,12 @@ var topologyConnectionString = "http://147.251.43.124:8080/visualisationdata-tes
     logicalRolesConnectionString = "http://147.251.43.124:8080/visualisationdata-test/network/topology/logicalRoles",
     timestampsConnectionString = "http://147.251.43.124:8080/visualisationdata-test/time/all-timestamps";
 
+/*Liferay.on('time_timestamps', function(event) {
+    console.log("Time: catching timestamps: " + event.from +" "+ event.to +" "+ event.range);
+    // DO SOMETHING  ELSE
+});*/
+
+
 var colors = {
     "red" : {
         "start" : 255,
@@ -34,7 +42,8 @@ var colors = {
     "intervals" : 5
 };
 
-var imagePath = "../images/",
+var imagePath = "/Topology-portlet/images/", // pre liferay
+//var	imagePath = "../images/",  //pre testovanie
     imageType = "_transparent",
     imageFormat = ".svg";
 
@@ -46,10 +55,7 @@ var y = d3.scale.linear()
     .domain([0, height])
     .range([0, height]);
 
-var svg = d3.select("body")
-    .append("svg")
-    .attr("width", width)
-    .attr("height", height)
+var svg = d3.select("svg")
     .call(d3.behavior.zoom().x(x).y(y).scaleExtent([1, 10]).on("zoom", zoom)).on("dblclick.zoom", null);
 
 var force = d3.layout.force()
@@ -72,6 +78,12 @@ window.onkeydown = function(event){
         stopSimulation();
 };
 
+svg.on("mousemove",function(){
+    var c = d3.mouse(this);
+    d3.selectAll("#mouse").text("mouse x: " + c[0] + " y: " + c[1]);
+    d3.selectAll("#event").text("event x: " + d3.event.x + " y: " + d3.event.y);
+});
+
 d3.json(timestampsConnectionString, function(json){
     timestamps = json.timestamps;
 });
@@ -79,7 +91,6 @@ d3.json(timestampsConnectionString, function(json){
 d3.json(topologyConnectionString, function (json) {
     root = json;
     update();
-    //paintLines();
     startSimulation();
 });
 
@@ -132,7 +143,8 @@ function createLinks(){
      */
     link.each(function(d){
         clearInterval(d.interval);
-    })
+        clearTimeout(d.timeout);
+    });
 
     links.forEach(function (l) {
         //set additional properties for original links
@@ -179,175 +191,17 @@ function createLinks(){
      * Preto animation, interval, atd. sa vzdy resetne po update. S tym treba pocitat a pozor na to.
      */
     links.forEach(function(d){
-        //activate animation
+        //add link properties
         d.animation = new Animation();
         d.animation.speed = 1055;
-        d.previousSpeed = 0;
-        d.speed = 0;
-
-        //color lines
+        //d.previousSpeed = undefined;
+        //d.speed = undefined;
+        d.load = undefined;
+        d.interval = undefined;
+        d.timeout = undefined;
+        d.stopwatch = new Stopwatch();
         d.colorScale = new RGBScale(colors);
     })
-}
-
-function startSimulation(){
-    var timestampIndex = -1;
-
-    simulationInterval = window.setInterval(function(){
-        timestampIndex++;
-        if(timestampIndex >= timestamps.length - 1)
-            window.clearInterval(simulationInterval);
-
-        d3.json(linkUsageConnectionString + "?timestamp=" + timestamps[timestampIndex], function (json) {
-            linkUsage = json;
-
-            link.each(function (d) {
-                var l = d3.select(this);
-                getLinkUsage(d, linkUsage);
-                colorLink(l,d, 500);
-                animateLink(l,d);
-            });
-
-            getStats(timestampIndex);
-        });
-
-        d3.json(logicalRolesConnectionString + "?absoluteTimestamp=" + timestamps[timestampIndex], function(json){
-           var interfaces = svg.selectAll(".node");
-           interfaces.each(function(d){
-                var role = d3.select(this).selectAll(".role")
-                    .attr("xlink:href", function (d) {
-                        for (var i = 0; i < json.interfaceRoles.length; i++) {
-                            if (d.topologyId == json.interfaceRoles[i].topologyId && json.interfaceRoles[i].role != "idle"){
-                                return imagePath + json.interfaceRoles[i].role + ".svg";
-                        }
-                        }
-                    });
-           })
-       });
-    }, simulationIntervalLength);
-}
-
-function getStats(timestampIndex){
-    d3.selectAll("#timestamp").text("Timestamp: " + timestamps[timestampIndex]);
-    var big = {speed:0};
-    linkUsage.routerLinks.forEach(function(n){
-        if(n.speed > big.speed)
-            big = n;
-    });
-    linkUsage.interfaceLinksIn.forEach(function(n){
-        if(n.speed > big.speed)
-        {
-            big = n;
-            big.type = "interfaceIn";
-        }
-    });
-    linkUsage.interfaceLinksOut.forEach(function(n){
-        if(n.speed > big.speed)
-        {
-            big = n;
-            big.type = "interfaceOut";
-        }
-    });
-
-    links.forEach(function(l){
-        if( big.topologyId && l.target.topologyId == big.topologyId)
-            d3.selectAll("#speed").text("Fastest link: " + l.target.name + " " + big.type  + " with speed " + big.speed);
-        else{
-            if(big.id == l.topologyId)
-                d3.selectAll("#speed").text("Fastest link: " + l.source.name + " to " + l.target.name + " with speed " + big.speed);
-        }
-    });
-}
-
-function stopSimulation(){
-    links.forEach(function(d){
-        window.clearInterval(d.interval);
-        window.clearInterval(simulationInterval);
-    })
-}
-
-function getLinkUsage(datum, json) {
-    switch (datum.type) {
-        case ("routerToRouter"): {
-            for (var i = 0; i < json.routerLinks.length; i++) {
-                if (datum.topologyId == json.routerLinks[i].id){
-                    datum.load = json.routerLinks[i].load;
-                    datum.previousSpeed = datum.speed;
-                    datum.speed = json.routerLinks[i].speed;
-                }
-            }
-            break;
-        }
-        case ("interfaceOut"):{
-            for (var i = 0; i < json.interfaceLinksOut.length; i++) {
-                if (datum.target.dataReferenceId == json.interfaceLinksOut[i].topologyId){
-                    datum.load = json.interfaceLinksOut[i].load;
-                    datum.previousSpeed = datum.speed;
-                    datum.speed = json.routerLinks[i].speed;
-                }
-            }
-            break;
-        }
-        case ("interfaceIn") :{
-            for (var i = 0; i < json.interfaceLinksIn.length; i++) {
-                if (datum.target.dataReferenceId == json.interfaceLinksIn[i].topologyId){
-                    datum.load = json.interfaceLinksIn[i].load;
-                    datum.previousSpeed = datum.speed;
-                    datum.speed = json.routerLinks[i].speed;
-                }
-            }
-            break;
-        }
-        default : {
-            datum.load = -1;
-            datum.previousSpeed = datum.speed;
-            datum.speed = 0;
-        }
-    }
-}
-
-function colorLink(link, datum, transitionLength){
-    link.transition()
-        .duration(transitionLength)
-        .style("stroke", function () {
-            if(datum.load >= 0) {
-                var intervalIndex = Math.floor(datum.load * colors.intervals),
-                    color =  datum.colorScale.paint(intervalIndex);
-                return color;
-            }
-            else
-                return "rgba(255,255,255,0)";
-        });
-}
-
-function animateLink(link, datum){
-    if (datum.type != "overlay") {
-        if(!datum.stopwatch)
-            datum.stopwatch = new Stopwatch();
-
-        if (datum.previousSpeed != datum.speed) {
-            window.clearInterval(datum.interval);
-            datum.stopwatch.stop();
-
-            var time = (defaultSpeed - (datum.animation.speed * datum.speed));
-            window.setTimeout(function(){
-                link.style("stroke-dasharray", function () {
-                    var style = datum.animation.start(this, datum.type);
-                    return style;
-                });
-
-                datum.stopwatch.start();
-                datum.interval = window.setInterval(function () {
-                    link.style("stroke-dasharray", function () {
-                        var style = datum.animation.start(this, datum.type);
-                        return style;
-                    });
-
-                    datum.stopwatch.start();
-                }, (defaultSpeed - (datum.animation.speed * datum.speed)));
-            }, Math.max(time - datum.stopTime, 0));
-        }
-    }
 }
 
 function createNodes(){
@@ -470,16 +324,15 @@ function zoom(){
 
 var routerNodeDragListener =
     d3.behavior.drag()
+       // .origin(function(d) { return d; })
         .on("dragstart", function(d){
             d.fixed = true;
             d3.select(this).classed("fixed", true);
             d3.event.sourceEvent.stopPropagation();
         })
         .on("drag", function(d){
-            d.px += d3.event.dx / scale;
-            d.py += d3.event.dy / scale;
-            d.x += d3.event.dx / scale;
-            d.y += d3.event.dy / scale;
+            d.px = (d3.event.x - translate[0]) / scale;
+            d.py = (d3.event.y - translate[1]) / scale;
             //for routers, compute coordinates of their children if they are hidden
             if((d.physicalRole == "router" || d.physicalRole =="cloud") && d.children == null) {
                 d._children.forEach(function(ch){
@@ -508,14 +361,7 @@ function routerNodeDblClickListener(d) {
         update();
         /*To color new links immediately after creation, otherwise they would remain black until next timestamp or
         to start animation again after update, otherwise links wouldn't move until next timestamp*/
-        if(linkUsage) {
-            link.each(function (d) {
-                var l = d3.select(this);
-                getLinkUsage(d, linkUsage);
-                colorLink(l,d, 0);
-                animateLink(l,d);
-            });
-        }
+        setLinkProperties(0);
     }
 };
 
@@ -560,14 +406,7 @@ function lineMouseDownListener(d) {
 
     update();
     //To color new links immediately after creation, otherwise they would remain black until next timestamp
-    if(linkUsage) {
-        link.each(function (d) {
-            var l = d3.select(this);
-            getLinkUsage(d, linkUsage);
-            colorLink(l,d, 0);
-            animateLink(l,d);
-        });
-    }
+    setLinkProperties(0);
 
     simulate(document.getElementById(n.topologyId), "mousedown", {pointerX: coordinates[0], pointerY: coordinates[1]});
 };
@@ -586,13 +425,7 @@ function lineBreakNodeDblClickListener(d) {
 
     update();
     //To start animation again after update, otherwise links wouldn't move until next timestamp
-    if(linkUsage){
-        link.each(function (d) {
-            var l = d3.select(this);
-            getLinkUsage(d, linkUsage);
-            animateLink(l,d);
-        });
-    }
+    setLinkProperties(0);
 };
 
 /**
@@ -726,16 +559,148 @@ function getVectorDirection(type, direction){
     return result;
 }
 
+function startSimulation(){
+    var timestampIndex = -1;
+
+    simulationInterval = window.setInterval(function(){
+        timestampIndex++;
+        if(timestampIndex >= timestamps.length - 1)
+            window.clearInterval(simulationInterval);
+
+        d3.json(linkUsageConnectionString + "?timestamp=" + timestamps[timestampIndex], function (json) {
+            linkUsage = json;
+
+            setLinkProperties(500);
+            getStats(timestampIndex);
+        });
+
+        d3.json(logicalRolesConnectionString + "?absoluteTimestamp=" + timestamps[timestampIndex], function(json){
+            var interfaces = svg.selectAll(".node");
+            interfaces.each(function(d){
+                var role = d3.select(this).selectAll(".role")
+                    .attr("xlink:href", function (d) {
+                        for (var i = 0; i < json.interfaceRoles.length; i++) {
+                            if (d.topologyId == json.interfaceRoles[i].topologyId && json.interfaceRoles[i].role != "idle"){
+                                return imagePath + json.interfaceRoles[i].role + ".svg";
+                            }
+                        }
+                    });
+            })
+        });
+    }, simulationIntervalLength);
+}
+
+function stopSimulation(){
+    links.forEach(function(d){
+        window.clearInterval(d.interval);
+        window.clearInterval(simulationInterval);
+    })
+}
+
+function setLinkProperties(transitionLength) {
+    if (linkUsage)
+        link.each(function (d) {
+            var l = d3.select(this);
+            if (d.type != "overlay") {
+                getLinkUsage(d, linkUsage);
+                colorLink(l, d, transitionLength);
+                animateLink(l, d);
+            }
+        });
+}
+
+function getLinkUsage(d, json) {
+    switch (d.type) {
+        case ("routerToRouter"): {
+            for (var i = 0; i < json.routerLinks.length; i++) {
+                if (d.topologyId == json.routerLinks[i].id){
+                    d.load = json.routerLinks[i].load;
+                    d.previousSpeed = d.speed;
+                    d.speed = json.routerLinks[i].speed;
+                }
+            }
+            break;
+        }
+        case ("interfaceOut"):{
+            for (var i = 0; i < json.interfaceLinksOut.length; i++) {
+                if (d.target.dataReferenceId == json.interfaceLinksOut[i].interfaceTopologyId){
+                    d.load = json.interfaceLinksOut[i].load;
+                    d.previousSpeed = d.speed;
+                    d.speed = json.interfaceLinksOut[i].speed;
+                }
+            }
+            break;
+        }
+        case ("interfaceIn") :{
+            for (var i = 0; i < json.interfaceLinksIn.length; i++) {
+                if (d.target.dataReferenceId == json.interfaceLinksIn[i].interfaceTopologyId){
+                    d.load = json.interfaceLinksIn[i].load;
+                    d.previousSpeed = d.speed;
+                    d.speed = json.interfaceLinksIn[i].speed;
+                }
+            }
+            break;
+        }
+        default : {
+            d.load = 0;
+            d.previousSpeed = d.speed;
+            d.speed = 0;
+        }
+    }
+}
+
+function colorLink(l, d, transitionLength){
+    l.transition()
+        .duration(transitionLength)
+        .style("stroke", function () {
+            var intervalIndex = Math.floor(d.load * colors.intervals),
+                color =  d.colorScale.paint(intervalIndex);
+            return color;
+        });
+}
+
+function animateLink(l, d){
+    if (d.previousSpeed != d.speed) {
+        var time = (defaultSpeed - (d.animation.speed * d.speed));
+
+        //toto po update nema zmysel, lebo je to vynulovane, ale vola sa to pri novom timestampe
+        clearInterval(d.interval);
+        clearTimeout(d.timeout);
+        d.stopwatch.stop();
+
+        d.timeout = window.setTimeout(function(){
+            l.style("stroke-dasharray", function () {
+                var style = d.animation.start(this, d.type);
+                return style;
+            });
+
+            d.stopwatch.start();
+            d.interval = window.setInterval(function () {
+                l.style("stroke-dasharray", function () {
+                    var style = d.animation.start(this, d.type);
+                    return style;
+                });
+
+                d.stopwatch.restart();
+            }, time);
+        }, Math.max(time - d.stopwatch.measuredTime, 0));
+    }
+}
+
 function Stopwatch(){
-    this.startTime = null;
-    this.stopTime = null;
+    this.startTime = undefined;
+    this.measuredTime = 0;
 
     this.start = function(){
         this.startTime = new Date().getTime();
     }
 
+    this.restart = function(){
+        this.start();
+    }
+
     this.stop = function(){
-        this.stopTime = this.duration();
+        this.measuredTime = this.duration();
     }
 
     this.duration = function(){
@@ -753,15 +718,15 @@ function Animation() {
     this.speed = 1000;
 
     this.start = function(link, type){
-        return type == "interfaceOut" ? this.in(link) : this.out(link);
+        return type == "interfaceOut" ? this.incoming(link) : this.outcoming(link);
     }
 
-    this.out = function(link){
+    this.outcoming = function(link){
         this.lastStep < 4 ? this.lastStep += 1 :this.lastStep = 0;
         return this.step[this.lastStep];
     };
 
-    this.in = function(link){
+    this.incoming = function(link){
         this.lastStep > 0 ? this.lastStep -= 1 :this.lastStep = 4;
         return this.step[this.lastStep];
     };
@@ -789,6 +754,41 @@ function RGBScale(colors){
             return this.end - (this.intervalLength() * (intervalIndex > (intervals - 1)  ? (intervals - 1) : intervalIndex));
         }
     }
+}
+
+function getStats(timestampIndex){
+    d3.selectAll("#timestamp").text("Timestamp: " + timestamps[timestampIndex]);
+
+    var fastestLink = {speed:0};
+    linkUsage.routerLinks.forEach(function(n){
+        if(n.speed > fastestLink.speed)
+            fastestLink = n;
+    });
+
+    linkUsage.interfaceLinksIn.forEach(function(n){
+        if(n.speed > fastestLink.speed)
+        {
+            fastestLink = n;
+            fastestLink.type = "interfaceIn";
+        }
+    });
+
+    linkUsage.interfaceLinksOut.forEach(function(n){
+        if(n.speed > fastestLink.speed)
+        {
+            fastestLink = n;
+            fastestLink.type = "interfaceOut";
+        }
+    });
+
+    links.forEach(function(l){
+        if( fastestLink.topologyId && l.target.topologyId == fastestLink.topologyId)
+            d3.selectAll("#speed").text("Fastest link: " + l.target.name + " " + fastestLink.type  + " with speed " + fastestLink.speed);
+        else{
+            if(fastestLink.id == l.topologyId)
+                d3.selectAll("#speed").text("Fastest link: " + l.source.name + " to " + l.target.name + " with speed " + fastestLink.speed);
+        }
+    });
 }
 
 function generateId() {
