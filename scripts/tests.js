@@ -63,6 +63,41 @@ function arrayRemoveTest() {
     }
 }
 
+//alternativne vytvaranie pozadia pre routre
+/*svg.selectAll(".router")
+    .insert("rect")
+    .attr("width", 600)
+    .attr("height", 600)
+    .attr("x", function (d) {
+        return -300;
+    })
+    .attr("y", function (d) {
+        return -300;
+    })
+    .attr("fill", "url(#img1)");
+
+group.each(function (d) {
+    if (d.physicalRole == "router") {
+        d3.select(this).append("image")
+            .attr("xlink:href", function (d) {
+                return imagePath + "cloud_transparent_outline.svg";
+            })
+            .attr("class", "cloud_bg")
+            .attr("x", function (d) {
+                return d.x - 400;
+            })
+            .attr("y", function (d) {
+                return d.y - 400;
+            })
+            .attr("width", function (d) {
+                return 800;
+            })
+            .attr("height", function (d) {
+                return 800;
+            });
+    }
+});*/
+
 /*function animateLink(link, datum){
  if (datum.type != "overlay") {
  if(!datum.stopwatch)

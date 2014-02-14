@@ -4,6 +4,7 @@ var width = parseInt(d3.select("svg").style("width")), //pre liferay
 	height = window.innerHeight - 20, // pre testovanie*/
     nodeSize = 48,
     lineBreakNodeSize = 10,
+    cloudSize = 1000,
     defaultNormalLength = 2,
     scaledNormalLength = defaultNormalLength,
     scale = 1,
@@ -57,14 +58,20 @@ var y = d3.scale.linear()
     .range([0, height]);
 
 var svg = d3.select("svg")
-    .call(d3.behavior.zoom().x(x).y(y).scaleExtent([1, 10]).on("zoom", zoom)).on("dblclick.zoom", null);
+    .call(d3.behavior.zoom().x(x).y(y).scaleExtent([0.1, 10]).on("zoom", zoom)).on("dblclick.zoom", null);
 
 var force = d3.layout.force()
     .size([width, height])
     .on("tick", tick)
     .on("end", end)
-    .linkDistance(120)
-    .charge(-500);
+    .linkDistance(function(d){
+        if(d.type == "routerToRouter")
+            return 1000;
+        else
+            return 100;
+    })
+    .charge(-5000)
+    .chargeDistance(1000);
 
 var link = svg.selectAll(".link"),
     node = svg.selectAll(".node"),
@@ -220,6 +227,34 @@ function createNodes(){
             return imagePath + d.physicalRole + imageType + imageFormat;
     });
 
+    node.each(function(d){
+        n = d3.select(this);
+
+        if(d.physicalRole == "cloud"){
+            svg.select("#background" + d.topologyId).remove();
+        }
+        if(d.physicalRole == "router" && svg.select("#background" + d.topologyId).empty()){
+            svg.insert("g", ":first-child")
+                .attr("class", function () {
+                    return "cloud_bg";
+                })
+                .attr("id", function () {
+                    return  "background" + d.topologyId;
+                })
+                .append("image")
+                .attr("xlink:href", function (d) {
+                    return imagePath + "cloud_transparent_outline.svg";
+                })
+                .attr("class", "cloud_bg")
+                .attr("width", function () {
+                    return cloudSize * scale;
+                })
+                .attr("height", function () {
+                    return cloudSize * scale;
+                });
+        }
+    });
+
     var group = node.enter()
         .append("g")
         .attr("class", function (d) {
@@ -232,6 +267,36 @@ function createNodes(){
             return d.topologyId;
         })
         .call(routerNodeDragListener);
+
+    group.each(function(d){
+        if(d.physicalRole == "router")
+            svg.insert("g", ":first-child")
+                .attr("class", function () {
+                    return "cloud_bg ";
+                })
+                .attr("id", function () {
+                    return "background" + d.topologyId;
+                })
+                .append("image")
+                .attr("xlink:href", function (d) {
+                    return imagePath + "cloud_transparent_outline.svg";
+                })
+                .attr("class", "cloud_bg")
+                .attr("width", function () {
+                    return cloudSize;
+                })
+                .attr("height", function () {
+                    return cloudSize;
+                });
+        });
+
+    //this sorts router nodes to the top of all nodes in document. It was used in first version of cloud background
+      group.sort(function(a,b){
+          if(a.physicalRole == "router" && b.physicalRole !="router")
+            return -1;
+          else
+            return 1;
+      });
 
     group.append("image")
         .attr("xlink:href", function (d) {
@@ -259,7 +324,7 @@ function createNodes(){
         .attr("class", "label")
         .text(function (d) {
             if(d.name == null && d.address4 == null)
-                return "";
+                d3.select(this).remove();
             else
                 return d.name + "/" + d.address4;
         });
@@ -325,6 +390,20 @@ function zoom(){
     translate = d3.event.translate;
     scaledNormalLength = defaultNormalLength / scale;
     tick();
+
+    svg.selectAll(".cloud_bg image").attr("width", function(){
+        console.log(cloudSize * scale);
+        return cloudSize * scale;
+    })
+    .attr("height", function(){
+        console.log(cloudSize * scale);
+        return cloudSize * scale;
+    });
+
+        svg.selectAll(".router").each(function(d){
+            if((scale < 0.5 && d.physicalRole == "router") || (scale > 0.5 && d.physicalRole == "cloud"))
+                routerNodeDblClickListener(d);
+        });
 }
 
 var routerNodeDragListener =
@@ -336,8 +415,8 @@ var routerNodeDragListener =
             d3.event.sourceEvent.stopPropagation();
         })
         .on("drag", function(d){
-            d.px = (d3.event.x - translate[0]) / scale;
-            d.py = (d3.event.y - translate[1]) / scale;
+            d.px += d3.event.dx / scale;
+            d.py += d3.event.dy / scale;
             //for routers, compute coordinates of their children if they are hidden
             if((d.physicalRole == "router" || d.physicalRole =="cloud") && d.children == null) {
                 d._children.forEach(function(ch){
@@ -439,7 +518,12 @@ function lineBreakNodeDblClickListener(d) {
  */
 function tick() {
     //refreshes position of all nodes in graph
-    node.attr("transform", function(d){  return "translate(" + x(d.x) + "," + y(d.y) + ")";});
+    node.attr("transform", function(d){
+            //this line changes position of network clouds
+
+            svg.selectAll("#background" + d.topologyId).attr("transform", function(){ return "translate(" + (x(d.x) - (cloudSize*scale)/2) + "," + (y(d.y) - (cloudSize*scale)/2) + ")";});
+        return "translate(" + x(d.x) + "," + y(d.y) + ")";});
+
 
     //refreshes starting and ending points of all links in graph
     link
