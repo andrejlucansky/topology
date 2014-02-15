@@ -228,30 +228,11 @@ function createNodes(){
     });
 
     node.each(function(d){
-        n = d3.select(this);
-
         if(d.physicalRole == "cloud"){
             svg.select("#background" + d.topologyId).remove();
         }
         if(d.physicalRole == "router" && svg.select("#background" + d.topologyId).empty()){
-            svg.insert("g", ":first-child")
-                .attr("class", function () {
-                    return "cloud_bg";
-                })
-                .attr("id", function () {
-                    return  "background" + d.topologyId;
-                })
-                .append("image")
-                .attr("xlink:href", function (d) {
-                    return imagePath + "cloud_transparent_outline.svg";
-                })
-                .attr("class", "cloud_bg")
-                .attr("width", function () {
-                    return cloudSize * scale;
-                })
-                .attr("height", function () {
-                    return cloudSize * scale;
-                });
+            insertCloudBackground(d);
         }
     });
 
@@ -268,29 +249,11 @@ function createNodes(){
         })
         .call(routerNodeDragListener);
 
-    group.each(function(d){
-        if(d.physicalRole == "router")
-            svg.insert("g", ":first-child")
-                .attr("class", function () {
-                    return "cloud_bg ";
-                })
-                .attr("id", function () {
-                    return "background" + d.topologyId;
-                })
-                .append("image")
-                .attr("xlink:href", function (d) {
-                    return imagePath + "cloud_transparent_outline.svg";
-                })
-                .attr("class", "cloud_bg")
-                .attr("width", function () {
-                    return cloudSize;
-                })
-                .attr("height", function () {
-                    return cloudSize;
-                });
+    group.filter(".router").each(function(d){
+        insertCloudBackground(d);
         });
 
-    //this sorts router nodes to the top of all nodes in document. It was used in first version of cloud background
+    //this sorts router nodes to the top of all nodes in document. It was used in first version of cloud background. Now just for fun.
       group.sort(function(a,b){
           if(a.physicalRole == "router" && b.physicalRole !="router")
             return -1;
@@ -350,6 +313,27 @@ function createNodes(){
         })
         .attr("height", function (d) {
             return d.size.height / 10 *7;
+        });
+}
+
+function insertCloudBackground(d){
+    svg.insert("g", ":first-child")
+        .attr("class", function () {
+            return "cloud_bg ";
+        })
+        .attr("id", function () {
+            return "background" + d.topologyId;
+        })
+        .append("image")
+        .attr("xlink:href", function (d) {
+            return imagePath + "cloud_transparent_outline.svg";
+        })
+        .attr("class", "cloud_bg")
+        .attr("width", function () {
+            return cloudSize * scale;
+        })
+        .attr("height", function () {
+            return cloudSize * scale;
         });
 }
 
