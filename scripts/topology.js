@@ -1,14 +1,21 @@
+/**
+ * Topology graph constants
+ * This section contains all necessary constants required to set up a graph. Every setting
+ * of the graph should be available here.
+ */
+
 var width = parseInt(d3.select("svg").style("width")), //pre liferay
 	height = parseInt(d3.select("svg").style("height")), // pre liferay
 /*var width = window.innerWidth - 20, // pre testovanie
 	height = window.innerHeight - 20, // pre testovanie*/
     nodeSize = 48,
     lineBreakNodeSize = 10,
-    cloudSize = 1000,
     defaultNormalLength = 2,
     scaledNormalLength = defaultNormalLength,
     scale = 1,
     translate = [0,0],
+    zoomShrinkCondition = 0.7,
+    cloudBackgroundMultiplier = 1.1,
     root,
     timestamps,
     linkUsage,
@@ -22,11 +29,17 @@ var topologyConnectionString = "../data/clusterTopologyTreePresentation.json",
     logicalRolesConnectionString = "http://147.251.43.124:8080/visualisationdata-test/network/topology/logicalRoles",
     timestampsConnectionString = "http://147.251.43.124:8080/visualisationdata-test/time/all-timestamps";
 
-/*Liferay.on('time_timestamps', function(event) {
-    console.log("Time: catching timestamps: " + event.from +" "+ event.to +" "+ event.range);
-    // DO SOMETHING  ELSE
-});*/
-
+var cloudBackground = {
+    "stroke" : "#3D3D3F",
+    "strokeWidth" : 2.5 / cloudBackgroundMultiplier,
+    "fill" : "none",
+    "path" : "M7343.97,7179.669 c0.99-5.167,1.526-10.494,1.526-15.949c0-46.603-37.779-84.382-84.383-84.382c-28.39,0-53.483,14.031-68.775,35.521 c-9.882-4.058-20.688-6.31-32.031-6.31c-44.044,0-80.189,33.75-84.026,76.795c-1.733-0.134-3.48-0.223-5.25-0.223 c-37.149,0-67.268,30.116-67.268,67.267c0,37.151,30.119,67.267,67.268,67.267c2.698,0,5.356-0.178,7.97-0.485h245.84 c39.248,0,71.064-31.816,71.064-71.065C7395.906,7215.492,7373.922,7188.025,7343.97,7179.669L7343.97,7179.669z",
+    "scale" : 1.5452539 * cloudBackgroundMultiplier,
+    "translateX" : -10725.828 * cloudBackgroundMultiplier,
+    "translateY" : -10725.055 * cloudBackgroundMultiplier,
+    "height" : 850 * cloudBackgroundMultiplier,
+    "width" : 900 * cloudBackgroundMultiplier
+};
 
 var colors = {
     "red" : {
@@ -49,6 +62,11 @@ var	imagePath = "../images/",  //pre testovanie
     imageType = "_transparent",
     imageFormat = ".svg";
 
+/*Liferay.on('time_timestamps', function(event) {
+    console.log("Time: catching timestamps: " + event.from +" "+ event.to +" "+ event.range);
+    // DO SOMETHING  ELSE
+});*/
+
 var x = d3.scale.linear()
     .domain([0, width])
     .range([0, width]);
@@ -68,7 +86,7 @@ var force = d3.layout.force()
         if(d.type == "routerToRouter")
             return 1000;
         else
-            return 100;
+            return 80;
     })
     .charge(-5000)
     .chargeDistance(1000);
@@ -291,29 +309,6 @@ function createNodes(){
             else
                 return d.name + "/" + d.address4;
         });
-
-    group.append("image")
-        .attr("xlink:href", function (d) {
-            if(d.logicalRole != null)
-                return imagePath + d.logicalRole + ".svg";
-            else
-            {
-                d3.select(this).remove();
-            }
-        })
-        .attr("class", "role")
-        .attr("x", function (d) {
-            return d.size.width / 2;
-        })
-        .attr("y", function (d) {
-            return d.size.height / 32;
-        })
-        .attr("width", function (d) {
-            return d.size.width  / 10 *7;
-        })
-        .attr("height", function (d) {
-            return d.size.height / 10 *7;
-        });
 }
 
 function insertCloudBackground(d){
@@ -324,17 +319,13 @@ function insertCloudBackground(d){
         .attr("id", function () {
             return "background" + d.topologyId;
         })
-        .append("image")
-        .attr("xlink:href", function (d) {
-            return imagePath + "cloud_transparent_outline.svg";
-        })
-        .attr("class", "cloud_bg")
-        .attr("width", function () {
-            return cloudSize * scale;
-        })
-        .attr("height", function () {
-            return cloudSize * scale;
-        });
+        .append("g")
+        .attr("transform", "matrix(" + cloudBackground.scale + ",0,0," + cloudBackground.scale + "," + cloudBackground.translateX + "," + cloudBackground.translateY + ")")
+        .append("path")
+        .attr("d", cloudBackground.path)
+        .attr("stroke", cloudBackground.stroke)
+        .attr("stroke-width", cloudBackground.strokeWidth)
+        .attr("fill", cloudBackground.fill);
 }
 
 function setPosition(node, event){
@@ -369,30 +360,9 @@ function getChildren(root) {
     return nodes;
 }
 
-function zoom(){
-    scale = d3.event.scale;
-    translate = d3.event.translate;
-    scaledNormalLength = defaultNormalLength / scale;
-    tick();
-
-    svg.selectAll(".cloud_bg image").attr("width", function(){
-        console.log(cloudSize * scale);
-        return cloudSize * scale;
-    })
-    .attr("height", function(){
-        console.log(cloudSize * scale);
-        return cloudSize * scale;
-    });
-
-        svg.selectAll(".router").each(function(d){
-            if((scale < 0.5 && d.physicalRole == "router") || (scale > 0.5 && d.physicalRole == "cloud"))
-                routerNodeDblClickListener(d);
-        });
-}
-
 var routerNodeDragListener =
     d3.behavior.drag()
-       // .origin(function(d) { return d; })
+        // .origin(function(d) { return d; })
         .on("dragstart", function(d){
             d.fixed = true;
             d3.select(this).classed("fixed", true);
@@ -414,8 +384,21 @@ var routerNodeDragListener =
             force.resume()
         });
 
-function routerNodeDblClickListener(d) {
-    if (!d3.event.defaultPrevented) {
+function zoom(){
+    scale = d3.event.scale;
+    translate = d3.event.translate;
+    scaledNormalLength = defaultNormalLength / scale;
+    tick();
+
+        svg.selectAll(".router").each(function(d){
+            if((scale < zoomShrinkCondition && d.physicalRole == "router") || (scale > zoomShrinkCondition && d.physicalRole == "cloud"))
+                if(d.locked == undefined || !d.locked){
+                    zoomRouterNodeListener(d);
+                }
+        });
+}
+
+function zoomRouterNodeListener(d) {
         if (d.children) {
             d._children = d.children;
             d.children = null;
@@ -428,8 +411,29 @@ function routerNodeDblClickListener(d) {
 
         update();
         /*To color new links immediately after creation, otherwise they would remain black until next timestamp or
-        to start animation again after update, otherwise links wouldn't move until next timestamp*/
+         to start animation again after update, otherwise links wouldn't move until next timestamp*/
         setLinkProperties(0);
+};
+
+function routerNodeDblClickListener(d) {
+    if (!d3.event.defaultPrevented) {
+        //we have 3 options. 1. lock unlock 2. lock and locked forever 3. lock and unlock only in origin state (applied now)
+            if(d.locked)
+            {
+                if(scale <= zoomShrinkCondition && d.lockOrigin <= zoomShrinkCondition || scale > zoomShrinkCondition && d.lockOrigin > zoomShrinkCondition)  {
+                    d.locked = false;
+                }
+                else {
+                    d.lockOrigin = scale;
+                }
+            }
+            else
+            {
+                d.locked = true;
+                d.lockOrigin = scale;
+            }
+
+        zoomRouterNodeListener(d);
     }
 };
 
@@ -502,11 +506,19 @@ function lineBreakNodeDblClickListener(d) {
  */
 function tick() {
     //refreshes position of all nodes in graph
-    node.attr("transform", function(d){
-            //this line changes position of network clouds
+    node.attr("transform", function (d) {
+        //this changes position of network clouds
+        var nodeBackground = svg.selectAll("#background" + d.topologyId);
+        nodeBackground.attr("transform", function () {
+            return "translate(" + (x(d.x) - (cloudBackground.width * scale) / 2) + "," + (y(d.y) - (cloudBackground.height * scale) / 2) + ")";
+        });
+        nodeBackground.select("g").attr("transform", function () {
+            return "matrix(" + (cloudBackground.scale * scale) + ",0,0," + (cloudBackground.scale * scale) + "," + (cloudBackground.translateX * scale) + "," + (cloudBackground.translateY * scale) + ")";
+        });
+        nodeBackground.select("path").attr("stroke-width", cloudBackground.strokeWidth / scale);
 
-            svg.selectAll("#background" + d.topologyId).attr("transform", function(){ return "translate(" + (x(d.x) - (cloudSize*scale)/2) + "," + (y(d.y) - (cloudSize*scale)/2) + ")";});
-        return "translate(" + x(d.x) + "," + y(d.y) + ")";});
+        return "translate(" + x(d.x) + "," + y(d.y) + ")";
+    });
 
 
     //refreshes starting and ending points of all links in graph
@@ -640,26 +652,8 @@ function startSimulation(){
         if(timestampIndex >= timestamps.length - 1)
             window.clearInterval(simulationInterval);
 
-        d3.json(linkUsageConnectionString + "?timestamp=" + timestamps[timestampIndex], function (json) {
-            linkUsage = json;
-
-            setLinkProperties(500);
-            getStats(timestampIndex);
-        });
-
-        d3.json(logicalRolesConnectionString + "?absoluteTimestamp=" + timestamps[timestampIndex], function(json){
-            var interfaces = svg.selectAll(".node");
-            interfaces.each(function(d){
-                var role = d3.select(this).selectAll(".role")
-                    .attr("xlink:href", function (d) {
-                        for (var i = 0; i < json.interfaceRoles.length; i++) {
-                            if (d.topologyId == json.interfaceRoles[i].topologyId && json.interfaceRoles[i].role != "idle"){
-                                return imagePath + json.interfaceRoles[i].role + ".svg";
-                            }
-                        }
-                    });
-            })
-        });
+        updateLinks(timestamps[timestampIndex]);
+        updateRoles(timestamps[timestampIndex]);
     }, simulationIntervalLength);
 }
 
@@ -668,6 +662,47 @@ function stopSimulation(){
         window.clearInterval(d.interval);
         window.clearInterval(simulationInterval);
     })
+}
+
+function updateLinks(timestamp){
+    d3.json(linkUsageConnectionString + "?timestamp=" + timestamp, function (json) {
+        linkUsage = json;
+
+        setLinkProperties(500);
+        getStats(timestamp);
+    });
+}
+
+function updateRoles(timestamp){
+    d3.json(logicalRolesConnectionString + "?absoluteTimestamp=" + timestamp, function(json){
+        var interfaces = svg.selectAll(".node");
+        interfaces.each(function(d){
+            var interface = d3.select(this);
+
+            interface.select(".role").remove();
+            interface.append("image")
+                .attr("xlink:href", function (d) {
+                    for (var i = 0; i < json.interfaceRoles.length; i++) {
+                        if (d.topologyId == json.interfaceRoles[i].topologyId && json.interfaceRoles[i].role != "idle"){
+                            return imagePath + json.interfaceRoles[i].role + imageFormat;
+                        }
+                    }
+                })
+                .attr("class", "role")
+                .attr("x", function (d) {
+                    return d.size.width / 2;
+                })
+                .attr("y", function (d) {
+                    return d.size.height / 32;
+                })
+                .attr("width", function (d) {
+                    return d.size.width  / 10 * 7;
+                })
+                .attr("height", function (d) {
+                    return d.size.height / 10 * 7;
+                });
+        })
+    });
 }
 
 function setLinkProperties(transitionLength) {
@@ -829,8 +864,8 @@ function RGBScale(colors){
     }
 }
 
-function getStats(timestampIndex){
-    d3.selectAll("#timestamp").text("Timestamp: " + timestamps[timestampIndex]);
+function getStats(timestamp){
+    d3.selectAll("#timestamp").text("Timestamp: " + timestamp);
 
     var fastestLink = {speed:0};
     linkUsage.routerLinks.forEach(function(n){
