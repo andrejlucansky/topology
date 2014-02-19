@@ -4,10 +4,8 @@
  * of the graph should be available here.
  */
 
-var width = parseInt(d3.select("svg").style("width")), //pre liferay
-	height = parseInt(d3.select("svg").style("height")), // pre liferay
-/*var width = window.innerWidth - 20, // pre testovanie
-	height = window.innerHeight - 20, // pre testovanie*/
+var width = parseInt(d3.select("svg").style("width")),
+	height = parseInt(d3.select("svg").style("height")),
     nodeSize = 48,
     lineBreakNodeSize = 10,
     defaultNormalLength = 2,
@@ -15,30 +13,46 @@ var width = parseInt(d3.select("svg").style("width")), //pre liferay
     scale = 1,
     translate = [0,0],
     zoomShrinkCondition = 0.7,
-    cloudBackgroundMultiplier = 1.1,
     root,
     timestamps,
     linkUsage,
+    topologyRoles,
     simulationInterval,
     simulationIntervalLength = 5000,
     defaultSpeed = 1105;
 
-var topologyConnectionString = "../data/clusterTopologyTreePresentation.json",
-    //topologyConnectionString = "http://147.251.43.124:8080/visualisationdata-test/network/topology",
+var //topologyConnectionString = "../data/clusterTopologyTreePresentation.json",
+    topologyConnectionString = "http://147.251.43.124:8080/visualisationdata-test/network/topology",
     linkUsageConnectionString = "http://147.251.43.124:8080/visualisationdata-test/network/usage/link",
     logicalRolesConnectionString = "http://147.251.43.124:8080/visualisationdata-test/network/topology/logicalRoles",
     timestampsConnectionString = "http://147.251.43.124:8080/visualisationdata-test/time/all-timestamps";
 
 var cloudBackground = {
-    "stroke" : "#3D3D3F",
-    "strokeWidth" : 2.5 / cloudBackgroundMultiplier,
-    "fill" : "none",
-    "path" : "M7343.97,7179.669 c0.99-5.167,1.526-10.494,1.526-15.949c0-46.603-37.779-84.382-84.383-84.382c-28.39,0-53.483,14.031-68.775,35.521 c-9.882-4.058-20.688-6.31-32.031-6.31c-44.044,0-80.189,33.75-84.026,76.795c-1.733-0.134-3.48-0.223-5.25-0.223 c-37.149,0-67.268,30.116-67.268,67.267c0,37.151,30.119,67.267,67.268,67.267c2.698,0,5.356-0.178,7.97-0.485h245.84 c39.248,0,71.064-31.816,71.064-71.065C7395.906,7215.492,7373.922,7188.025,7343.97,7179.669L7343.97,7179.669z",
-    "scale" : 1.5452539 * cloudBackgroundMultiplier,
-    "translateX" : -10725.828 * cloudBackgroundMultiplier,
-    "translateY" : -10725.055 * cloudBackgroundMultiplier,
-    "height" : 850 * cloudBackgroundMultiplier,
-    "width" : 900 * cloudBackgroundMultiplier
+    "stroke": "#3D3D3F",
+    "strokeWidth": function () {
+        return 2.5 / this.multiplier;
+    },
+    "fill": "none",
+    "path": "M7343.97,7179.669 c0.99-5.167,1.526-10.494,1.526-15.949c0-46.603-37.779-84.382-84.383-84.382c-28.39,0-53.483,14.031-68.775,35.521 c-9.882-4.058-20.688-6.31-32.031-6.31c-44.044,0-80.189,33.75-84.026,76.795c-1.733-0.134-3.48-0.223-5.25-0.223 c-37.149,0-67.268,30.116-67.268,67.267c0,37.151,30.119,67.267,67.268,67.267c2.698,0,5.356-0.178,7.97-0.485h245.84 c39.248,0,71.064-31.816,71.064-71.065C7395.906,7215.492,7373.922,7188.025,7343.97,7179.669L7343.97,7179.669z",
+    "scale": function () {
+        return (1.5452539 * this.multiplier)
+    },
+    "translateX": function () {
+        return (-10725.828 * this.multiplier)
+    },
+    "translateY": function () {
+        return (-10725.055 * this.multiplier)
+    },
+    "height": function () {
+        return (850 * this.multiplier)
+    },
+    "width": function () {
+        return (900 * this.multiplier)
+    },
+    "minimalHeight": function () {
+        return 850;
+    },
+    "multiplier": 0.8
 };
 
 var colors = {
@@ -57,15 +71,16 @@ var colors = {
     "intervals" : 5
 };
 
-//var imagePath = "/Topology-portlet/images/", // pre liferay
-var	imagePath = "../images/",  //pre testovanie
-    imageType = "_transparent",
-    imageFormat = ".svg";
+var imageType = "_transparent",
+    imageFormat = ".svg",
+    imagePath;
 
-/*Liferay.on('time_timestamps', function(event) {
-    console.log("Time: catching timestamps: " + event.from +" "+ event.to +" "+ event.range);
-    // DO SOMETHING  ELSE
-});*/
+if(typeof Liferay !== "undefined"){
+    imagePath = "/Topology-portlet/images/"; // pre liferay
+}
+else{
+    imagePath = "../images/";  //pre testovanie
+}
 
 var x = d3.scale.linear()
     .domain([0, width])
@@ -110,14 +125,26 @@ svg.on("mousemove",function(){
     d3.selectAll("#event").text("event x: " + d3.event.x + " y: " + d3.event.y);
 });
 
-/*d3.json(timestampsConnectionString, function(json){
+d3.json(timestampsConnectionString, function(json){
     timestamps = json.timestamps;
-});*/
+});
 
 d3.json(topologyConnectionString, function (json) {
     root = json;
     update();
-    //startSimulation();
+
+    /**
+     * Connection to KYPO time portlet events
+     */
+    if(typeof Liferay !== "undefined"){
+        Liferay.on('time_timestamps', function(event) {
+            console.log("Time: catching timestamps: " + event.from +" "+ event.to +" "+ event.range);
+            updateLinks(event.to);
+            updateRoles(event.to);
+        });
+    } else{
+        startSimulation();
+    }
 });
 
 //this function could return node index in nodes array, but it easier to return whole node reference
@@ -257,7 +284,12 @@ function createNodes(){
     var group = node.enter()
         .append("g")
         .attr("class", function (d) {
-            return "node " + d.physicalRole
+            if(d.physicalRole == "router"){
+                return "node router";
+            }
+            else{
+                return "node interface" + d.physicalRole;
+            }
         })
         .attr("index", function (d) {
             return d.index;
@@ -324,36 +356,26 @@ function insertCloudBackground(d){
         .append("path")
         .attr("d", cloudBackground.path)
         .attr("stroke", cloudBackground.stroke)
-        .attr("stroke-width", cloudBackground.strokeWidth)
+        .attr("stroke-width", cloudBackground.strokeWidth())
         .attr("fill", cloudBackground.fill);
-}
-
-function setPosition(node, event){
-    if(node.children)
-    node.children.forEach(function(ch){
-        setPosition(ch, event);
-        ch.x += event.dx / scale;
-        ch.y += event.dy / scale;
-        ch.px += event.dx / scale;
-        ch.py += event.dy / scale;
-    })
 }
 
 function getChildren(root) {
     var nodes = [], i = 0;
 
-    function recurse(node) {
-        if (node.children) node.children.forEach(recurse);
+    function recurse(node, parent) {
+        if (node.children) node.children.forEach(function(ch){recurse(ch, node)});
         //if (/*!node.topologyId*/ node.physicalRole != "router") node.topologyId = generateId();
         //node.topologyId = generateId();
         //if it doesn't exist already, because we would be rewriting our own data otherwise
         if (!node.size) node.size = {"width": nodeSize, "height": nodeSize};
         if (!node.dataReferenceId) node.dataReferenceId = node.topologyId;
+        node.parent = parent;
 
         nodes.push(node);
     }
 
-    recurse(root);
+    recurse(root, null);
 
     //remove root node
     nodes.splice(nodes.indexOf(root), 1);
@@ -372,17 +394,51 @@ var routerNodeDragListener =
             d.px += d3.event.dx / scale;
             d.py += d3.event.dy / scale;
             //for routers, compute coordinates of their children if they are hidden
-            if((d.physicalRole == "router" || d.physicalRole =="cloud") && d.children == null) {
+            if(d.physicalRole =="cloud") {
                 d._children.forEach(function(ch){
                     setPosition(ch, d3.event);
-                    ch.x += d3.event.dx / scale;
-                    ch.y += d3.event.dy / scale;
                     ch.px += d3.event.dx / scale;
                     ch.py += d3.event.dy / scale;
                 });
             }
+
+            if(d.physicalRole == "router"){
+                d.children.forEach(function(ch){
+                    setPosition(ch, d3.event);
+                    ch.px += d3.event.dx / scale;
+                    ch.py += d3.event.dy / scale;
+                });
+            }
+
+/*            if(d.physicalRole != "router" && d.physicalRole != "cloud"){
+                var diffX = Math.abs(d.parent.px - d.px);
+                var diffY = Math.abs(d.parent.py - d.py);
+
+                if(diffY > cloudBackground.height()/4 && cloudBackground.height() >= cloudBackground.minimalHeight())
+                {
+                    var multiplier = (diffY - cloudBackground.height()/4) / ((cloudBackground.height()/4)/100);
+                    cloudBackground.multiplier = cloudBackground.multiplier + ((cloudBackground.multiplier/100) * multiplier);
+                    console.log(cloudBackground.multiplier);
+                }
+                if(diffY < cloudBackground.height()/4  &&  cloudBackground.height() > cloudBackground.minimalHeight() * cloudBackground.multiplier)
+                {
+                    var multiplier = (diffY - cloudBackground.height()/4) / ((cloudBackground.height()/4)/100);
+                    cloudBackground.multiplier = cloudBackground.multiplier + ((cloudBackground.multiplier/100) * multiplier);
+                    console.log( cloudBackground.multiplier);
+                }
+            }*/
             force.resume()
         });
+
+
+function setPosition(node, event){
+    if(node.children)
+        node.children.forEach(function(ch){
+            setPosition(ch, event);
+            ch.px += event.dx / scale;
+            ch.py += event.dy / scale;
+        })
+}
 
 function zoom(){
     scale = d3.event.scale;
@@ -413,6 +469,9 @@ function zoomRouterNodeListener(d) {
         /*To color new links immediately after creation, otherwise they would remain black until next timestamp or
          to start animation again after update, otherwise links wouldn't move until next timestamp*/
         setLinkProperties(0);
+
+        /*To show roles again after interface nodes have been displayed*/
+        setRoles();
 };
 
 function routerNodeDblClickListener(d) {
@@ -454,7 +513,6 @@ function lineMouseDownListener(d) {
         "topologyId": generateId(),
         "dataReferenceId": d.target.dataReferenceId,
         "address4" : null,
-        "logicalRole": null,
         "physicalRole": "lineBreak",
         "parent": d.source,
         "children": [d.target],
@@ -510,12 +568,12 @@ function tick() {
         //this changes position of network clouds
         var nodeBackground = svg.selectAll("#background" + d.topologyId);
         nodeBackground.attr("transform", function () {
-            return "translate(" + (x(d.x) - (cloudBackground.width * scale) / 2) + "," + (y(d.y) - (cloudBackground.height * scale) / 2) + ")";
+            return "translate(" + (x(d.x) - (cloudBackground.width() * scale) / 2) + "," + (y(d.y) - (cloudBackground.height() * scale) / 2) + ")";
         });
         nodeBackground.select("g").attr("transform", function () {
-            return "matrix(" + (cloudBackground.scale * scale) + ",0,0," + (cloudBackground.scale * scale) + "," + (cloudBackground.translateX * scale) + "," + (cloudBackground.translateY * scale) + ")";
+            return "matrix(" + (cloudBackground.scale() * scale) + ",0,0," + (cloudBackground.scale() * scale) + "," + (cloudBackground.translateX() * scale) + "," + (cloudBackground.translateY() * scale) + ")";
         });
-        nodeBackground.select("path").attr("stroke-width", cloudBackground.strokeWidth / scale);
+        nodeBackground.select("path").attr("stroke-width", cloudBackground.strokeWidth() / scale);
 
         return "translate(" + x(d.x) + "," + y(d.y) + ")";
     });
@@ -664,6 +722,11 @@ function stopSimulation(){
     })
 }
 
+/**
+ * This function is used to update speed and color of links connecting nodes in the graph.
+ * @param timestamp Timestamp is representing time interval in simulation. In this function, timestamp is used to
+ * define interval, for which speed and color of links should be shown to the user.
+ */
 function updateLinks(timestamp){
     d3.json(linkUsageConnectionString + "?timestamp=" + timestamp, function (json) {
         linkUsage = json;
@@ -673,36 +736,66 @@ function updateLinks(timestamp){
     });
 }
 
+/**
+ * This function is used to update images appended to interfaces in the graph. Theese images represent logical roles of
+ * theese interfaces in the attack simulation.
+ * @param timestamp Timestamp is representing time interval in simulation. In this function, timestamp is used to
+ * define interval, for which logical roles should be shown to the user.
+ */
 function updateRoles(timestamp){
     d3.json(logicalRolesConnectionString + "?absoluteTimestamp=" + timestamp, function(json){
-        var interfaces = svg.selectAll(".node");
-        interfaces.each(function(d){
-            var interface = d3.select(this);
-
-            interface.select(".role").remove();
-            interface.append("image")
-                .attr("xlink:href", function (d) {
-                    for (var i = 0; i < json.interfaceRoles.length; i++) {
-                        if (d.topologyId == json.interfaceRoles[i].topologyId && json.interfaceRoles[i].role != "idle"){
-                            return imagePath + json.interfaceRoles[i].role + imageFormat;
-                        }
-                    }
-                })
-                .attr("class", "role")
-                .attr("x", function (d) {
-                    return d.size.width / 2;
-                })
-                .attr("y", function (d) {
-                    return d.size.height / 32;
-                })
-                .attr("width", function (d) {
-                    return d.size.width  / 10 * 7;
-                })
-                .attr("height", function (d) {
-                    return d.size.height / 10 * 7;
-                });
-        })
+        topologyRoles = json;
+        setRoles();
     });
+}
+
+function setRoles() {
+    if (topologyRoles) {
+        var interfaces = svg.selectAll(".interface");
+        interfaces.each(function (d) {
+            var interface = d3.select(this);
+            var newImageSource;
+
+            for (var i = 0; i < topologyRoles.interfaceRoles.length; i++) {
+                if (d.topologyId == topologyRoles.interfaceRoles[i].topologyId && topologyRoles.interfaceRoles[i].role != "idle") {
+                    newImageSource = imagePath + topologyRoles.interfaceRoles[i].role + imageFormat;
+                }
+            }
+
+            var interfaceRole = interface.select(".role");
+
+            if(newImageSource != undefined){
+                if(interfaceRole.empty()){
+                    console.log("append");
+                    interface.append("image")
+                        .attr("xlink:href", newImageSource)
+                        .attr("class", "role")
+                        .attr("x", function (d) {
+                            return d.size.width / 2;
+                        })
+                        .attr("y", function (d) {
+                            return d.size.height / 32;
+                        })
+                        .attr("width", function (d) {
+                            return d.size.width / 10 * 7;
+                        })
+                        .attr("height", function (d) {
+                            return d.size.height / 10 * 7;
+                        });
+                }
+                else{
+                    if(interfaceRole.attr("xlink:href") != newImageSource){
+                        console.log("change");
+                        interfaceRole.attr("xlink:href", newImageSource);
+                    }
+                }
+            }
+            else{
+                console.log("remove");
+                interfaceRole.remove();
+            }
+        });
+    }
 }
 
 function setLinkProperties(transitionLength) {
@@ -964,21 +1057,3 @@ var defaultOptions = {
     bubbles: true,
     cancelable: true
 };
-
-function roundNumber(number, digits) {
-    var multiple = Math.pow(10, digits);
-    return  (Math.round(number * multiple) / multiple);
-}
-
-function computeParallelism(segment1, segment2) {
-    //compute direction vector of the first segment
-    var u1 = segment1[1].x - segment1[0].x;
-    var u2 = segment1[1].y - segment1[0].y;
-
-    //compute direction vector of the second segment
-    var v1 = segment2[1].x - segment2[0].x;
-    var v2 = segment2[1].y - segment2[0].y;
-
-    //compare ratio of first and second part of direction vectors rounded to 1 decimal number
-    return roundNumber(u1 / v1, 1) == roundNumber(u2 / v2, 1);
-}

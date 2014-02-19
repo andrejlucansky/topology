@@ -63,8 +63,28 @@ function arrayRemoveTest() {
     }
 }
 
+//Old methods, different solutions and old versions
+/*
+function roundNumber(number, digits) {
+    var multiple = Math.pow(10, digits);
+    return  (Math.round(number * multiple) / multiple);
+}
+
+function computeParallelism(segment1, segment2) {
+    //compute direction vector of the first segment
+    var u1 = segment1[1].x - segment1[0].x;
+    var u2 = segment1[1].y - segment1[0].y;
+
+    //compute direction vector of the second segment
+    var v1 = segment2[1].x - segment2[0].x;
+    var v2 = segment2[1].y - segment2[0].y;
+
+    //compare ratio of first and second part of direction vectors rounded to 1 decimal number
+    return roundNumber(u1 / v1, 1) == roundNumber(u2 / v2, 1);
+}
+
 //alternativne vytvaranie pozadia pre routre
-/*svg.selectAll(".router")
+svg.selectAll(".router")
     .insert("rect")
     .attr("width", 600)
     .attr("height", 600)
@@ -96,9 +116,9 @@ group.each(function (d) {
                 return 800;
             });
     }
-});*/
+});
 
-/*function animateLink(link, datum){
+function animateLink(link, datum){
  if (datum.type != "overlay") {
  if(!datum.stopwatch)
  datum.stopwatch = new Worker("../scripts/stopwatch.js");
