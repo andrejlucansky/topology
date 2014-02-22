@@ -19,10 +19,10 @@ var width = parseInt(d3.select("svg").style("width")),
     topologyRoles,
     simulationInterval,
     simulationIntervalLength = 5000,
-    defaultSpeed = 1105;
+    defaultSpeed = 1105,
+    performanceTest = false;
 
-var //topologyConnectionString = "../data/clusterTopologyTreePresentation.json",
-    topologyConnectionString = "http://147.251.43.124:8080/visualisationdata-test/network/topology",
+var topologyConnectionString = "http://147.251.43.124:8080/visualisationdata-test/network/topology",
     linkUsageConnectionString = "http://147.251.43.124:8080/visualisationdata-test/network/usage/link",
     logicalRolesConnectionString = "http://147.251.43.124:8080/visualisationdata-test/network/topology/logicalRoles",
     timestampsConnectionString = "http://147.251.43.124:8080/visualisationdata-test/time/all-timestamps";
@@ -35,19 +35,19 @@ var cloudBackground = {
     "fill": "none",
     "path": "M7343.97,7179.669 c0.99-5.167,1.526-10.494,1.526-15.949c0-46.603-37.779-84.382-84.383-84.382c-28.39,0-53.483,14.031-68.775,35.521 c-9.882-4.058-20.688-6.31-32.031-6.31c-44.044,0-80.189,33.75-84.026,76.795c-1.733-0.134-3.48-0.223-5.25-0.223 c-37.149,0-67.268,30.116-67.268,67.267c0,37.151,30.119,67.267,67.268,67.267c2.698,0,5.356-0.178,7.97-0.485h245.84 c39.248,0,71.064-31.816,71.064-71.065C7395.906,7215.492,7373.922,7188.025,7343.97,7179.669L7343.97,7179.669z",
     "scale": function () {
-        return (1.5452539 * this.multiplier)
+        return (1.5452539 * this.multiplier);
     },
     "translateX": function () {
-        return (-10725.828 * this.multiplier)
+        return (-10725.828 * this.multiplier);
     },
     "translateY": function () {
-        return (-10725.055 * this.multiplier)
+        return (-10725.055 * this.multiplier);
     },
     "height": function () {
-        return (850 * this.multiplier)
+        return (850 * this.multiplier);
     },
     "width": function () {
-        return (900 * this.multiplier)
+        return (900 * this.multiplier);
     },
     "minimalHeight": function () {
         return 850;
@@ -77,6 +77,20 @@ var imageType = "_transparent",
 
 if(typeof Liferay !== "undefined"){
     imagePath = "/Topology-portlet/images/"; // pre liferay
+
+    Liferay.Portlet.ready(
+        function(portletId, node) {
+            console.log("portlet ready");
+            Liferay.on('updatedLayout', function(event) {
+                var portlet = d3.select("#" + portletId)
+                width = portlet.style("width");
+                height = portlet.style("width");
+
+                svg.style("width", portlet.style("width"));
+                svg.style("height", portlet.style("height"))
+            });
+        }
+    );
 }
 else{
     imagePath = "../images/";  //pre testovanie
@@ -130,7 +144,11 @@ d3.json(timestampsConnectionString, function(json){
 });
 
 d3.json(topologyConnectionString, function (json) {
-    root = json;
+    if(performanceTest)
+        root = createTestingNodesAndLinks();
+    else
+        root = json;
+
     update();
 
     /**
@@ -288,7 +306,7 @@ function createNodes(){
                 return "node router";
             }
             else{
-                return "node interface" + d.physicalRole;
+                return "node interface " + d.physicalRole;
             }
         })
         .attr("index", function (d) {
@@ -352,7 +370,7 @@ function insertCloudBackground(d){
             return "background" + d.topologyId;
         })
         .append("g")
-        .attr("transform", "matrix(" + cloudBackground.scale + ",0,0," + cloudBackground.scale + "," + cloudBackground.translateX + "," + cloudBackground.translateY + ")")
+        .attr("transform", "matrix(" + cloudBackground.scale() + ",0,0," + cloudBackground.scale() + "," + cloudBackground.translateX() + "," + cloudBackground.translateY() + ")")
         .append("path")
         .attr("d", cloudBackground.path)
         .attr("stroke", cloudBackground.stroke)
@@ -444,7 +462,6 @@ function zoom(){
     scale = d3.event.scale;
     translate = d3.event.translate;
     scaledNormalLength = defaultNormalLength / scale;
-    tick();
 
         svg.selectAll(".router").each(function(d){
             if((scale < zoomShrinkCondition && d.physicalRole == "router") || (scale > zoomShrinkCondition && d.physicalRole == "cloud"))
@@ -452,6 +469,8 @@ function zoom(){
                     zoomRouterNodeListener(d);
                 }
         });
+
+    tick();
 }
 
 function zoomRouterNodeListener(d) {
@@ -764,9 +783,10 @@ function setRoles() {
 
             var interfaceRole = interface.select(".role");
 
+            //if role should be assigned
             if(newImageSource != undefined){
+                //check if there already is an image element and: 1. if it not, append it
                 if(interfaceRole.empty()){
-                    console.log("append");
                     interface.append("image")
                         .attr("xlink:href", newImageSource)
                         .attr("class", "role")
@@ -783,15 +803,15 @@ function setRoles() {
                             return d.size.height / 10 * 7;
                         });
                 }
+                // 2. if it is, change source reference
                 else{
                     if(interfaceRole.attr("xlink:href") != newImageSource){
-                        console.log("change");
                         interfaceRole.attr("xlink:href", newImageSource);
                     }
                 }
             }
+            //else remove image element, because it wont be used
             else{
-                console.log("remove");
                 interfaceRole.remove();
             }
         });
@@ -819,6 +839,12 @@ function getLinkUsage(d, json) {
                     d.previousSpeed = d.speed;
                     d.speed = json.routerLinks[i].speed;
                 }
+/*                else
+                {
+                    d.load = 1;
+                    d.previousSpeed = 0;
+                    d.speed = 1;
+                }*/
             }
             break;
         }
@@ -829,6 +855,12 @@ function getLinkUsage(d, json) {
                     d.previousSpeed = d.speed;
                     d.speed = json.interfaceLinksOut[i].speed;
                 }
+/*                else
+                {
+                    d.load = 1;
+                    d.previousSpeed = 0;
+                    d.speed = 1;
+                }*/
             }
             break;
         }
@@ -839,6 +871,12 @@ function getLinkUsage(d, json) {
                     d.previousSpeed = d.speed;
                     d.speed = json.interfaceLinksIn[i].speed;
                 }
+/*                else
+                {
+                    d.load = 1;
+                    d.previousSpeed = 0;
+                    d.speed = 1;
+                }*/
             }
             break;
         }
@@ -990,6 +1028,100 @@ function getStats(timestamp){
                 d3.selectAll("#speed").text("Fastest link: " + l.source.name + " to " + l.target.name + " with speed " + fastestLink.speed);
         }
     });
+}
+function createTestingNodesAndLinks(){
+    var numberOfAttackers = 10;
+    var numberOfRouters = 10;
+    var numberOfSheeps = 1;
+
+    var result = {};
+    result.children = [];
+    result.links = [];
+
+    //create attacker networks
+    var index = 0;
+    for(var i = 0; i < numberOfRouters; i++){
+        var router = {};
+        router.id = i;
+        router.topologyId = "r_" + i;
+        router.name = "Attacker network " + i;
+        router.address4 = "unknown";
+        router.physicalRole = "router";
+        router.children = [];
+
+        for(var j = 0; j < numberOfAttackers; j++){
+            var node = {};
+            node.id = index;
+            node.topologyId = "i_" + index;
+            node.name = "attacker " + j;
+            node.address4 = "unknown";
+            node.physicalRole = "computer";
+
+            index++;
+            router.children.push(node);
+        }
+        result.children.push(router);
+    }
+
+    //create links
+    var index = 0;
+    for(var l = 0; l < numberOfRouters; l++){
+        for (var k = 0; k < numberOfRouters; k++){
+            if(l != k){
+                var link = {};
+
+                link.id = index;
+                link.source = "r_" + l;
+                link.target = "r_" + k;
+                index++;
+
+                result.links.push(link);
+            }
+        }
+    }
+
+    return result;
+}
+
+function createTestingNodesAndLinks2(){
+    var numberOfNOdes = 333;
+
+    var result = {};
+    result.children = [];
+    result.links = [];
+
+    //create attacker networks
+    var index = 0;
+    for(var i = 0; i < numberOfNOdes; i++){
+        var router = {};
+        router.id = i;
+        router.topologyId = "r_" + i;
+        router.name = "Attacker network " + i;
+        router.address4 = "unknown";
+        router.physicalRole = "router";
+        router.children = [];
+
+        result.children.push(router);
+    }
+
+    //create links
+    var index = 0;
+    for(var l = 0; l < numberOfNOdes; l++){
+        for (var k = 0; k < numberOfNOdes; k++){
+            if(l == k-1){
+                var link = {};
+
+                link.id = index;
+                link.source = "r_" + l;
+                link.target = "r_" + k;
+                index++;
+
+                result.links.push(link);
+            }
+        }
+    }
+
+    return result;
 }
 
 function generateId() {
