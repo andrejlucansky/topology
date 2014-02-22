@@ -409,8 +409,12 @@ var routerNodeDragListener =
             d3.event.sourceEvent.stopPropagation();
         })
         .on("drag", function(d){
-            d.px += d3.event.dx / scale;
-            d.py += d3.event.dy / scale;
+            /*
+            this can't be only "d.px += d3.event.dx / scale;". It is being translated in the first step of the drag, which would cause
+            node to be moved to wrong location at start
+            */
+            d.px =  (d3.event.x - translate[0]) / scale;
+            d.py =  (d3.event.y - translate[1]) / scale;
             //for routers, compute coordinates of their children if they are hidden
             if(d.physicalRole =="cloud") {
                 d._children.forEach(function(ch){
