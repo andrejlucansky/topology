@@ -257,6 +257,54 @@ function createLinks(){
             return d.topologyId;
         });
 
+
+    link.filter(".overlay").each(function(d){
+        var interfaceIn,
+            interfaceOut;
+
+        links.forEach(function (l) {
+            if (l.topologyId == (d.target.topologyId + "In")) {
+                interfaceIn = l;
+            }
+        });
+
+        links.forEach(function (l) {
+            if (l.topologyId == (d.target.topologyId + "Out")) {
+                interfaceOut = l;
+            }
+        });
+
+        d3.select(this).on("mouseover", function(){
+            d3.select(".tooltip")
+                .transition()
+                .duration(500)
+                .style("opacity", 1);
+        })
+            .on("mousemove", function(){
+                d3.select(".tooltip")
+                    .html(
+                        "<b>In:</b>" +
+                        "<br>Number of Bits: " + interfaceIn.numberOfBits +
+                        "<br>Bandwidth: " + interfaceIn.bandwidth + " " + interfaceIn.bwUnit +
+                        "<br>Load: " + roundNumber(interfaceIn.load, 2) +
+                        "<br>Speed: " + roundNumber(interfaceIn.speed, 2) +
+                        "<br>" +
+                        "<br><b>Out:</b>" +
+                        "<br>Number of Bits: " + interfaceOut.numberOfBits +
+                        "<br>Bandwidth: " + interfaceOut.bandwidth + " " + interfaceOut.bwUnit +
+                        "<br>Load: " + roundNumber(interfaceOut.load, 2) +
+                        "<br>Speed: " + roundNumber(interfaceOut.speed, 2))
+                    .style("left", (d3.event.pageX + 15) + "px")
+                    .style("top", (d3.event.pageY + 15) + "px");
+            })
+            .on("mouseout", function(){
+                d3.select(".tooltip")
+                    .transition()
+                    .duration(500)
+                    .style("opacity", 0);
+            })
+    });
+
     /**
      * Data liniek ktore si vymyslim sa pri update vzdy zmazu, pretoze sa vyrabaju nove ciste links(data) v metode getChildren z noveho setu uzlov.
      * Preto animation, interval, atd. sa vzdy resetne po update. S tym treba pocitat a pozor na to.
@@ -842,6 +890,10 @@ function getLinkUsage(d, json) {
                     d.load = json.routerLinks[i].load;
                     d.previousSpeed = d.speed;
                     d.speed = json.routerLinks[i].speed;
+
+                    d.numberOfBits = json.routerLinks[i].numberOfBits;
+                    d.bandwidth = json.routerLinks[i].bandwidth;
+                    d.bwUnit = json.routerLinks[i].bwUnit;
                 }
 /*                else
                 {
@@ -858,6 +910,10 @@ function getLinkUsage(d, json) {
                     d.load = json.interfaceLinksOut[i].load;
                     d.previousSpeed = d.speed;
                     d.speed = json.interfaceLinksOut[i].speed;
+
+                    d.numberOfBits = json.routerLinks[i].numberOfBits;
+                    d.bandwidth = json.routerLinks[i].bandwidth;
+                    d.bwUnit = json.routerLinks[i].bwUnit;
                 }
 /*                else
                 {
@@ -874,6 +930,10 @@ function getLinkUsage(d, json) {
                     d.load = json.interfaceLinksIn[i].load;
                     d.previousSpeed = d.speed;
                     d.speed = json.interfaceLinksIn[i].speed;
+
+                    d.numberOfBits = json.routerLinks[i].numberOfBits;
+                    d.bandwidth = json.routerLinks[i].bandwidth;
+                    d.bwUnit = json.routerLinks[i].bwUnit;
                 }
 /*                else
                 {
@@ -888,6 +948,10 @@ function getLinkUsage(d, json) {
             d.load = 0;
             d.previousSpeed = d.speed;
             d.speed = 0;
+
+            d.numberOfBits = undefined;
+            d.bandwidth = undefined;
+            d.bwUnit = undefined;
         }
     }
 }
@@ -1126,6 +1190,11 @@ function createTestingNodesAndLinks2(){
     }
 
     return result;
+}
+
+function roundNumber(number, digits) {
+    var multiple = Math.pow(10, digits);
+    return  (Math.round(number * multiple) / multiple);
 }
 
 function generateId() {
