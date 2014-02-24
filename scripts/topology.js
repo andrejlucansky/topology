@@ -4,8 +4,8 @@
  * of the graph should be available here.
  */
 
-var width = parseInt(d3.select("svg").style("width")),
-	height = parseInt(d3.select("svg").style("height")),
+var width,
+	height,
     nodeSize = 48,
     lineBreakNodeSize = 10,
     defaultNormalLength = 2,
@@ -71,6 +71,17 @@ var colors = {
     "intervals" : 5
 };
 
+var topology = d3.select("#topology");
+
+var svg = topology
+    .append("svg");
+
+var tooltip = topology
+    .append("div")
+    .attr("class", "tooltip")
+    .style("opacity", 0);
+
+
 var imageType = "_transparent",
     imageFormat = ".svg",
     imagePath;
@@ -94,6 +105,8 @@ if(typeof Liferay !== "undefined"){
 }
 else{
     imagePath = "../images/";  //pre testovanie
+    width = parseInt(d3.select("svg").style("width"));
+    height = parseInt(d3.select("svg").style("height"));
 }
 
 var x = d3.scale.linear()
@@ -103,9 +116,6 @@ var x = d3.scale.linear()
 var y = d3.scale.linear()
     .domain([0, height])
     .range([0, height]);
-
-var svg = d3.select("svg")
-    .call(d3.behavior.zoom().x(x).y(y).scaleExtent([0.1, 10]).on("zoom", zoom)).on("dblclick.zoom", null);
 
 var force = d3.layout.force()
     .size([width, height])
@@ -139,6 +149,8 @@ svg.on("mousemove",function(){
     d3.selectAll("#event").text("event x: " + d3.event.x + " y: " + d3.event.y);
 });
 
+svg.call(d3.behavior.zoom().x(x).y(y).scaleExtent([0.1, 10]).on("zoom", zoomListener)).on("dblclick.zoom", null);
+
 d3.json(timestampsConnectionString, function(json){
     timestamps = json.timestamps;
 });
@@ -164,6 +176,26 @@ d3.json(topologyConnectionString, function (json) {
         startSimulation();
     }
 });
+
+function getChildren(root) {
+    var nodes = [], i = 0;
+
+    function recurse(node, parent) {
+        if (node.children) node.children.forEach(function(ch){recurse(ch, node)});
+        //if it doesn't exist already, because we would be rewriting our own data otherwise
+        if (!node.size) node.size = {"width": nodeSize, "height": nodeSize};
+        if (!node.dataReferenceId) node.dataReferenceId = node.topologyId;
+        node.parent = parent;
+
+        nodes.push(node);
+    }
+
+    recurse(root, null);
+
+    //remove root node
+    nodes.splice(nodes.indexOf(root), 1);
+    return nodes;
+}
 
 //this function could return node index in nodes array, but it easier to return whole node reference
 function findNodeById(topologyId) {
@@ -258,51 +290,11 @@ function createLinks(){
         });
 
 
-    link.filter(".overlay").each(function(d){
-        var interfaceIn,
-            interfaceOut;
-
-        links.forEach(function (l) {
-            if (l.topologyId == (d.target.topologyId + "In")) {
-                interfaceIn = l;
-            }
-        });
-
-        links.forEach(function (l) {
-            if (l.topologyId == (d.target.topologyId + "Out")) {
-                interfaceOut = l;
-            }
-        });
-
-        d3.select(this).on("mouseover", function(){
-            d3.select(".tooltip")
-                .transition()
-                .duration(500)
-                .style("opacity", 1);
-        })
-            .on("mousemove", function(){
-                d3.select(".tooltip")
-                    .html(
-                        "<b>In:</b>" +
-                        "<br>Number of Bits: " + interfaceIn.numberOfBits +
-                        "<br>Bandwidth: " + interfaceIn.bandwidth + " " + interfaceIn.bwUnit +
-                        "<br>Load: " + roundNumber(interfaceIn.load, 2) +
-                        "<br>Speed: " + roundNumber(interfaceIn.speed, 2) +
-                        "<br>" +
-                        "<br><b>Out:</b>" +
-                        "<br>Number of Bits: " + interfaceOut.numberOfBits +
-                        "<br>Bandwidth: " + interfaceOut.bandwidth + " " + interfaceOut.bwUnit +
-                        "<br>Load: " + roundNumber(interfaceOut.load, 2) +
-                        "<br>Speed: " + roundNumber(interfaceOut.speed, 2))
-                    .style("left", (d3.event.pageX + 15) + "px")
-                    .style("top", (d3.event.pageY + 15) + "px");
-            })
-            .on("mouseout", function(){
-                d3.select(".tooltip")
-                    .transition()
-                    .duration(500)
-                    .style("opacity", 0);
-            })
+    link.filter(".overlay").each(function (d) {
+        d3.select(this)
+            .on("mouseover", mouseOverListener)
+            .on("mousemove", lineMouseMoveListener)
+            .on("mouseout", mouseOutListener);
     });
 
     /**
@@ -313,11 +305,9 @@ function createLinks(){
         //add link properties
         d.animation = new Animation();
         d.animation.speed = 1055;
-        //d.previousSpeed = undefined;
-        //d.speed = undefined;
-        d.load = undefined;
         d.interval = undefined;
         d.timeout = undefined;
+
         d.stopwatch = new Stopwatch();
         d.colorScale = new RGBScale(colors);
     })
@@ -365,18 +355,6 @@ function createNodes(){
         })
         .call(routerNodeDragListener);
 
-    group.filter(".router").each(function(d){
-        insertCloudBackground(d);
-        });
-
-    //this sorts router nodes to the top of all nodes in document. It was used in first version of cloud background. Now just for fun.
-      group.sort(function(a,b){
-          if(a.physicalRole == "router" && b.physicalRole !="router")
-            return -1;
-          else
-            return 1;
-      });
-
     group.append("image")
         .attr("xlink:href", function (d) {
             if(d.physicalRole == "lineBreak")
@@ -407,6 +385,66 @@ function createNodes(){
             else
                 return d.name + "/" + d.address4;
         });
+
+    group.filter(".router").each(function(d){
+        insertCloudBackground(d);
+    });
+
+    //match same interfaces and circle them with same color
+    insertCircles();
+
+    //this sorts router nodes to the top of all nodes in document. It was used in first version of cloud background. Now just for fun.
+    group.sort(function(a,b){
+        if(a.physicalRole == "router" && b.physicalRole !="router")
+            return -1;
+        else
+            return 1;
+    });
+
+    group.on("mouseover", mouseOverListener)
+         .on("mousemove", nodeMouseMoveListener)
+         .on("mouseout", mouseOutListener);
+}
+
+function insertCircles(){
+    var hostNodes = [[]];
+
+    nodes.forEach(function(d){
+        if(d.hostNodeId != undefined){
+            var found = false;
+            for(var i = 0; i < hostNodes.length; i++){
+                if(d.hostNodeId == hostNodes[i][0]){
+
+                    found = true;
+                    hostNodes[i][1] = hostNodes[i][1] + 1;
+                }
+            }
+
+            if(!found) {
+                hostNodes.push([]);
+                hostNodes[hostNodes.length-1].push(d.hostNodeId);
+                hostNodes[hostNodes.length-1].push(1);
+            }
+        }
+    });
+
+    hostNodes.forEach(function(h){
+        var color = "hsla(" + Math.random() * 360 + ",100%," + Math.max(Math.random() * 100, 25) + "%, 0.75)";
+
+        node.filter(".interface").each(function(d){
+            if(h[1] > 1 && d.hostNodeId == h[0] && !d.circled){
+                d3.select(this)
+                    .insert("circle",":first-child")
+                    .attr("r", 25)
+                    .attr("fill", d.circleColor ? d.circleColor : color);
+
+                d.circled = true;
+
+                if(d.circleColor == undefined)
+                    d.circleColor = color;
+            }
+        })
+    })
 }
 
 function insertCloudBackground(d){
@@ -426,28 +464,6 @@ function insertCloudBackground(d){
         .attr("fill", cloudBackground.fill);
 }
 
-function getChildren(root) {
-    var nodes = [], i = 0;
-
-    function recurse(node, parent) {
-        if (node.children) node.children.forEach(function(ch){recurse(ch, node)});
-        //if (/*!node.topologyId*/ node.physicalRole != "router") node.topologyId = generateId();
-        //node.topologyId = generateId();
-        //if it doesn't exist already, because we would be rewriting our own data otherwise
-        if (!node.size) node.size = {"width": nodeSize, "height": nodeSize};
-        if (!node.dataReferenceId) node.dataReferenceId = node.topologyId;
-        node.parent = parent;
-
-        nodes.push(node);
-    }
-
-    recurse(root, null);
-
-    //remove root node
-    nodes.splice(nodes.indexOf(root), 1);
-    return nodes;
-}
-
 var routerNodeDragListener =
     d3.behavior.drag()
         // .origin(function(d) { return d; })
@@ -457,26 +473,22 @@ var routerNodeDragListener =
             d3.event.sourceEvent.stopPropagation();
         })
         .on("drag", function(d){
-            /*
-            this can't be only "d.px += d3.event.dx / scale;". It is being translated in the first step of the drag, which would cause
-            node to be moved to wrong location at start
-            */
-            d.px =  (d3.event.x - translate[0]) / scale;
-            d.py =  (d3.event.y - translate[1]) / scale;
-            //for routers, compute coordinates of their children if they are hidden
-            if(d.physicalRole =="cloud") {
-                d._children.forEach(function(ch){
-                    setPosition(ch, d3.event);
-                    ch.px += d3.event.dx / scale;
-                    ch.py += d3.event.dy / scale;
-                });
+            mouseOutListener(d);
+            //compute coordinates of dragged node (NOTE: if some coordinates are wrong, it is probably because of simulate() function)
+            d.px += d3.event.dx / scale;
+            d.py += d3.event.dy / scale;
+
+            //compute coordinate of children if they are not hidden
+            if(d.physicalRole == "router"){
+                setNodePosition(d, d3.event);
             }
 
-            if(d.physicalRole == "router"){
-                d.children.forEach(function(ch){
-                    setPosition(ch, d3.event);
+            //compute coordinates of children if they are hidden
+            if(d.physicalRole =="cloud") {
+                d._children.forEach(function(ch){
                     ch.px += d3.event.dx / scale;
                     ch.py += d3.event.dy / scale;
+                    setNodePosition(ch, d3.event);
                 });
             }
 
@@ -501,16 +513,16 @@ var routerNodeDragListener =
         });
 
 
-function setPosition(node, event){
+function setNodePosition(node, event){
     if(node.children)
         node.children.forEach(function(ch){
-            setPosition(ch, event);
+            setNodePosition(ch, event);
             ch.px += event.dx / scale;
             ch.py += event.dy / scale;
         })
 }
 
-function zoom(){
+function zoomListener(){
     scale = d3.event.scale;
     translate = d3.event.translate;
     scaledNormalLength = defaultNormalLength / scale;
@@ -518,15 +530,18 @@ function zoom(){
         svg.selectAll(".router").each(function(d){
             if((scale < zoomShrinkCondition && d.physicalRole == "router") || (scale > zoomShrinkCondition && d.physicalRole == "cloud"))
                 if(d.locked == undefined || !d.locked){
-                    zoomRouterNodeListener(d);
+                    routerNodeZoomListener(d);
                 }
         });
 
     tick();
 }
 
-function zoomRouterNodeListener(d) {
+function routerNodeZoomListener(d) {
         if (d.children) {
+            d.children.forEach(function(ch){
+                ch.circled = false;
+            })
             d._children = d.children;
             d.children = null;
             d.physicalRole = "cloud";
@@ -563,9 +578,69 @@ function routerNodeDblClickListener(d) {
                 d.lockOrigin = scale;
             }
 
-        zoomRouterNodeListener(d);
+        routerNodeZoomListener(d);
     }
 };
+
+function mouseOverListener(){
+    tooltip
+        .transition()
+        .delay(500)
+        .duration(500)
+        .style("opacity", 1);
+}
+
+function mouseOutListener(){
+    tooltip
+        .transition()
+        .duration(0)
+        .style("opacity", 0);
+}
+
+
+function nodeMouseMoveListener(d){
+    tooltip
+        .html(
+            "<b>Node:</b>" +
+                "<br>Name: " + d.name +
+                "<br>IPv4 address: " + d.address4 +
+                "<br>Physical role: " + d.physicalRole +
+                "<br>Logical role: " + d.logicalRole +
+                "<br>Topology Id: " + d.topologyId +
+                "<br>Id: " + d.id)
+        .style("left", (d3.event.pageX + 15) + "px")
+        .style("top", (d3.event.pageY + 15) + "px");
+}
+
+function lineMouseMoveListener(d){
+    var interfaceIn,
+        interfaceOut;
+
+    links.forEach(function (l) {
+        if (l.topologyId == (d.target.topologyId + "In")) {
+            interfaceIn = l;
+        }else
+        if (l.topologyId == (d.target.topologyId + "Out")) {
+            interfaceOut = l;
+        }
+    });
+
+    tooltip
+        .html(
+            "<b>In:</b>" +
+                "<br>Number of Bits: " + interfaceIn.numberOfBits +
+                "<br>Bandwidth: " + interfaceIn.bandwidth + " " + interfaceIn.bwUnit +
+                "<br>Load: " + roundNumber(interfaceIn.load, 2) +
+                "<br>Speed: " + roundNumber(interfaceIn.speed, 2) +
+                "<br>" +
+                "<br><b>Out:</b>" +
+                "<br>Number of Bits: " + interfaceOut.numberOfBits +
+                "<br>Bandwidth: " + interfaceOut.bandwidth + " " + interfaceOut.bwUnit +
+                "<br>Load: " + roundNumber(interfaceOut.load, 2) +
+                "<br>Speed: " + roundNumber(interfaceOut.speed, 2))
+        .style("left", (d3.event.pageX + 15) + "px")
+        .style("top", (d3.event.pageY + 15) + "px");
+}
 
 function lineMouseDownListener(d) {
     d3.event.stopPropagation();
@@ -609,7 +684,7 @@ function lineMouseDownListener(d) {
     //To color new links immediately after creation, otherwise they would remain black until next timestamp
     setLinkProperties(0);
 
-    simulate(document.getElementById(n.topologyId), "mousedown", {pointerX: coordinates[0], pointerY: coordinates[1]});
+    simulate(document.getElementById(n.topologyId), "mousedown", {pointerX: d3.event.x, pointerY: d3.event.y});
 };
 
 function lineBreakNodeDblClickListener(d) {
@@ -828,8 +903,11 @@ function setRoles() {
             var newImageSource;
 
             for (var i = 0; i < topologyRoles.interfaceRoles.length; i++) {
-                if (d.topologyId == topologyRoles.interfaceRoles[i].topologyId && topologyRoles.interfaceRoles[i].role != "idle") {
-                    newImageSource = imagePath + topologyRoles.interfaceRoles[i].role + imageFormat;
+                if (d.topologyId == topologyRoles.interfaceRoles[i].topologyId) {
+                    if(topologyRoles.interfaceRoles[i].role != "idle"){
+                        newImageSource = imagePath + topologyRoles.interfaceRoles[i].role + imageFormat;
+                    }
+                    d.logicalRole = topologyRoles.interfaceRoles[i].role;
                 }
             }
 
@@ -1097,6 +1175,7 @@ function getStats(timestamp){
         }
     });
 }
+
 function createTestingNodesAndLinks(){
     var numberOfAttackers = 10;
     var numberOfRouters = 10;
@@ -1121,6 +1200,7 @@ function createTestingNodesAndLinks(){
             var node = {};
             node.id = index;
             node.topologyId = "i_" + index;
+            node.hostNodeId = j;
             node.name = "attacker " + j;
             node.address4 = "unknown";
             node.physicalRole = "computer";

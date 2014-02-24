@@ -49,11 +49,11 @@
             background-color: rgb(230, 230, 230);
         }
 
-        /*svg{
+        svg{
            width: 1920px;
            height: 1080px;
         }
-          */
+
         .link {
             stroke-width: 2px;
             stroke-dasharray: 3, 2;
@@ -65,14 +65,13 @@
             stroke-dasharray: 1, 0;
             stroke: rgba(255, 255, 255, 0);
         }
-
+        /*
         .node circle {
             cursor: pointer;
-            fill: #ccc;
             stroke: #000;
             stroke-width: 1.5px;
         }
-
+           */
         .node text {
             font-family: Arial, Helvetica, sans-serif;
             font-size: 10px;
@@ -91,6 +90,8 @@
 
         div.tooltip {
             position: absolute;
+            left: 0px;
+            top: 0px;
             text-align: left;
             width: auto;
             height: auto;
@@ -105,7 +106,6 @@
 </head>
 <body>
 <div id="topology">
-    <svg>
         <!--
         <path id="path11" fill="none" stroke="#3D3D3F" stroke-width="2.5" d="M7343.97,7179.669
 				c0.99-5.167,1.526-10.494,1.526-15.949c0-46.603-37.779-84.382-84.383-84.382c-28.39,0-53.483,14.031-68.775,35.521
@@ -118,8 +118,6 @@
             </pattern>
         </defs>
         -->
-    </svg>
-    <div class="tooltip">Test</div>
     <div id="stats">
         <div id="timestamp"></div>
         <div id="speed"></div>
