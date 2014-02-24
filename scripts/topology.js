@@ -401,9 +401,10 @@ function createNodes(){
             return 1;
     });
 
-    group.on("mouseover", mouseOverListener)
-         .on("mousemove", nodeMouseMoveListener)
-         .on("mouseout", mouseOutListener);
+    group.filter(":not(.lineBreak)")
+        .on("mouseover", mouseOverListener)
+        .on("mousemove", nodeMouseMoveListener)
+        .on("mouseout", mouseOutListener);
 }
 
 function insertCircles(){
@@ -473,7 +474,9 @@ var routerNodeDragListener =
             d3.event.sourceEvent.stopPropagation();
         })
         .on("drag", function(d){
-            mouseOutListener(d);
+            //remove tooltip
+            mouseOutListener();
+
             //compute coordinates of dragged node (NOTE: if some coordinates are wrong, it is probably because of simulate() function)
             d.px += d3.event.dx / scale;
             d.py += d3.event.dy / scale;
@@ -534,6 +537,9 @@ function zoomListener(){
                 }
         });
 
+    //remove tooltip
+    mouseOutListener();
+
     tick();
 }
 
@@ -579,6 +585,9 @@ function routerNodeDblClickListener(d) {
             }
 
         routerNodeZoomListener(d);
+
+        //remove tooltip
+        mouseOutListener();
     }
 };
 
