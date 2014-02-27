@@ -4,15 +4,13 @@
  * of the graph should be available here.
  */
 
-var width,
-	height,
-    nodeSize = 48,
+var nodeSize = 48,
     lineBreakNodeSize = 10,
     defaultNormalLength = 2,
     scaledNormalLength = defaultNormalLength,
     scale = 1,
     translate = [0,0],
-    zoomShrinkCondition = 0.7,
+    zoomShrinkCondition = 1,
     root,
     timestamps,
     linkUsage,
@@ -20,7 +18,7 @@ var width,
     simulationInterval,
     simulationIntervalLength = 5000,
     defaultSpeed = 1105,
-    performanceTest = false;
+    performanceTest = true;
 
 var topologyConnectionString = "http://147.251.43.124:8080/visualisationdata-test/network/topology",
     linkUsageConnectionString = "http://147.251.43.124:8080/visualisationdata-test/network/usage/link",
@@ -89,7 +87,7 @@ var imageType = "_transparent",
 if(typeof Liferay !== "undefined"){
     imagePath = "/Topology-portlet/images/"; // pre liferay
 
-    Liferay.Portlet.ready(
+/*    Liferay.Portlet.ready(
         function(portletId, node) {
             console.log("portlet ready");
             Liferay.on('updatedLayout', function(event) {
@@ -101,13 +99,14 @@ if(typeof Liferay !== "undefined"){
                 svg.style("height", portlet.style("height"))
             });
         }
-    );
+    );*/
 }
 else{
     imagePath = "../images/";  //pre testovanie
-    width = parseInt(d3.select("svg").style("width"));
-    height = parseInt(d3.select("svg").style("height"));
 }
+
+var width = parseInt(d3.select("svg").style("width")),
+    height = parseInt(d3.select("svg").style("height"));
 
 var x = d3.scale.linear()
     .domain([0, width])
@@ -122,7 +121,7 @@ var force = d3.layout.force()
     .on("tick", tick)
     .on("end", end)
     .linkDistance(function(d){
-        if(d.type == "routerToRouter")
+        if(d.type == "internetworking" || d.type == "internetworkingOverlay")
             return 1000;
         else
             return 80;
@@ -143,11 +142,11 @@ window.onkeydown = function(event){
         stopSimulation();
 };
 
-svg.on("mousemove",function(){
+/*svg.on("mousemove",function(){
     var c = d3.mouse(this);
     d3.selectAll("#mouse").text("mouse x: " + c[0] + " y: " + c[1]);
     d3.selectAll("#event").text("event x: " + d3.event.x + " y: " + d3.event.y);
-});
+});*/
 
 svg.call(d3.behavior.zoom().x(x).y(y).scaleExtent([0.1, 10]).on("zoom", zoomListener)).on("dblclick.zoom", null);
 
@@ -162,6 +161,7 @@ d3.json(topologyConnectionString, function (json) {
         root = json;
 
     update();
+    zoomListener();
 
     /**
      * Connection to KYPO time portlet events
@@ -224,8 +224,6 @@ function update() {
         .links(links)
         .start();
 
-    //bind click links from router to computer
-    svg.selectAll(".overlay").on("mousedown", lineMouseDownListener);
     //bind doubleclick for routers to be collabsible
     svg.selectAll(".router").on("dblclick", routerNodeDblClickListener);
     //bind doubleclick for line breaks to disappear
@@ -258,7 +256,7 @@ function createLinks(){
         links.push({"source": l.source, "target": l.target, "type": "interfaceOut", "topologyId":  l.target.topologyId + "Out"});
 
         //add invisible overlay link to the list
-        links.push({"source": l.source, "target": l.target, "type": "overlay", "topologyId":  l.target.topologyId + "Overlay"});
+        links.push({"source": l.source, "target": l.target, "type": "interfaceOverlay", "topologyId":  l.target.topologyId + "Overlay"});
     });
 
     //add links which are between routers
@@ -266,8 +264,16 @@ function createLinks(){
         var source = findNodeById(l.source),
             target = findNodeById(l.target);
 
-        links.push({"source": source, "target": target, "type": "routerToRouter", "topologyId": l.id});
-        //links.push({"source": target, "target": source, "type": "routerToRouter", "topologyId": generateId()});
+        links.push({"source": source, "target": target, "type": "internetworking", "topologyId": l.id});
+        //links.push({"source": target, "target": source, "type": "internetworking", "topologyId": generateId()});
+    })
+
+    //add overlay on internetworking links
+    links.forEach(function(d){
+        if(d.type == "internetworking" && d.source.id < d.target.id){
+            links.push({"source": d.source, "target": d.target, "type": "internetworkingOverlay", "topologyId": d.topologyId + "Overlay"});
+        }
+
     })
 
     link = link.data(links, function (d) {
@@ -289,14 +295,6 @@ function createLinks(){
             return d.topologyId;
         });
 
-
-    link.filter(".overlay").each(function (d) {
-        d3.select(this)
-            .on("mouseover", mouseOverListener)
-            .on("mousemove", lineMouseMoveListener)
-            .on("mouseout", mouseOutListener);
-    });
-
     /**
      * Data liniek ktore si vymyslim sa pri update vzdy zmazu, pretoze sa vyrabaju nove ciste links(data) v metode getChildren z noveho setu uzlov.
      * Preto animation, interval, atd. sa vzdy resetne po update. S tym treba pocitat a pozor na to.
@@ -311,6 +309,21 @@ function createLinks(){
         d.stopwatch = new Stopwatch();
         d.colorScale = new RGBScale(colors);
     })
+
+    link.filter(".interfaceOverlay").each(function (d) {
+        d3.select(this)
+            .on("mouseover", mouseOverListener)
+            .on("mousemove", lineMouseMoveListener)
+            .on("mouseout", mouseOutListener)
+            .on("mousedown", lineMouseDownListener);
+    });
+
+    link.filter(".internetworkingOverlay").each(function (d) {
+        d3.select(this)
+            .on("mouseover", mouseOverListener)
+            .on("mousemove", interNetworkingLineMouseMoveListener)
+            .on("mouseout", mouseOutListener);
+    });
 }
 
 function createNodes(){
@@ -376,7 +389,7 @@ function createNodes(){
         });
 
     group.append("text")
-        .attr("dx", 18)
+        .attr("dx", 25)
         .attr("dy", function(d){ return -(d.size.height / 8)})
         .attr("class", "label")
         .text(function (d) {
@@ -429,13 +442,16 @@ function insertCircles(){
         }
     });
 
+    console.log("start");
     hostNodes.forEach(function(h){
         var color = "hsla(" + Math.random() * 360 + ",100%," + Math.max(Math.random() * 100, 25) + "%, 0.75)";
 
         node.filter(".interface").each(function(d){
             if(h[1] > 1 && d.hostNodeId == h[0] && !d.circled){
+                console.log("yes");
                 d3.select(this)
                     .insert("circle",":first-child")
+                    .attr("class", "hostnode")
                     .attr("r", 25)
                     .attr("fill", d.circleColor ? d.circleColor : color);
 
@@ -443,6 +459,10 @@ function insertCircles(){
 
                 if(d.circleColor == undefined)
                     d.circleColor = color;
+            } else if(h[1] <= 1 && d.hostNodeId == h[0] && d.circled){
+                d.circled = false;
+                console.log("no");
+                d3.select(this).select("circle").remove();
             }
         })
     })
@@ -526,12 +546,14 @@ function setNodePosition(node, event){
 }
 
 function zoomListener(){
-    scale = d3.event.scale;
-    translate = d3.event.translate;
-    scaledNormalLength = defaultNormalLength / scale;
+    if(d3.event){
+        scale = d3.event.scale;
+        translate = d3.event.translate;
+        scaledNormalLength = defaultNormalLength / scale;
+    }
 
         svg.selectAll(".router").each(function(d){
-            if((scale < zoomShrinkCondition && d.physicalRole == "router") || (scale > zoomShrinkCondition && d.physicalRole == "cloud"))
+            if((scale <= zoomShrinkCondition && d.physicalRole == "router") || (scale > zoomShrinkCondition && d.physicalRole == "cloud"))
                 if(d.locked == undefined || !d.locked){
                     routerNodeZoomListener(d);
                 }
@@ -636,17 +658,46 @@ function lineMouseMoveListener(d){
 
     tooltip
         .html(
-            "<b>In:</b>" +
+            "<b>" + interfaceIn.source.name + " to " + interfaceIn.target.name + ":</b>" +
                 "<br>Number of Bits: " + interfaceIn.numberOfBits +
                 "<br>Bandwidth: " + interfaceIn.bandwidth + " " + interfaceIn.bwUnit +
                 "<br>Load: " + roundNumber(interfaceIn.load, 2) +
                 "<br>Speed: " + roundNumber(interfaceIn.speed, 2) +
                 "<br>" +
-                "<br><b>Out:</b>" +
+                "<br><b>" + interfaceIn.target.name + " to " + interfaceIn.source.name + ":</b>" +
                 "<br>Number of Bits: " + interfaceOut.numberOfBits +
                 "<br>Bandwidth: " + interfaceOut.bandwidth + " " + interfaceOut.bwUnit +
                 "<br>Load: " + roundNumber(interfaceOut.load, 2) +
                 "<br>Speed: " + roundNumber(interfaceOut.speed, 2))
+        .style("left", (d3.event.pageX + 15) + "px")
+        .style("top", (d3.event.pageY + 15) + "px");
+}
+
+function interNetworkingLineMouseMoveListener(d){
+    var sourceToTargetLine,
+        targetToSourceLine;
+
+    links.forEach(function(l){
+        if(l != d && l.source == d.source && l.target == d.target)
+            sourceToTargetLine = l;
+        else if(l.source == d.target && l.target == d.source)
+            targetToSourceLine= l;
+
+    })
+
+    tooltip
+        .html(
+            "<b>" + sourceToTargetLine.source.name + " to " + sourceToTargetLine.target.name + ":</b>" +
+                "<br>Number of Bits: " + sourceToTargetLine.numberOfBits +
+                "<br>Bandwidth: " + sourceToTargetLine.bandwidth + " " + sourceToTargetLine.bwUnit +
+                "<br>Load: " + roundNumber(sourceToTargetLine.load, 2) +
+                "<br>Speed: " + roundNumber(sourceToTargetLine.speed, 2) +
+                "<br>" +
+                "<br><b>" + targetToSourceLine.source.name + " to " + targetToSourceLine.target.name + ":</b>" +
+                "<br>Number of Bits: " + targetToSourceLine.numberOfBits +
+                "<br>Bandwidth: " + targetToSourceLine.bandwidth + " " + targetToSourceLine.bwUnit +
+                "<br>Load: " + roundNumber(targetToSourceLine.load, 2) +
+                "<br>Speed: " + roundNumber(targetToSourceLine.speed, 2))
         .style("left", (d3.event.pageX + 15) + "px")
         .style("top", (d3.event.pageY + 15) + "px");
 }
@@ -825,7 +876,11 @@ function getVectorDirection(type, direction){
 
     switch (type) {
         //invisible overlay lines should end in centers of their source and target nodes, without any translation applied to them
-        case "overlay":
+        case "interfaceOverlay":
+            result = null;
+            break;
+        //invisible overlay lines should end in centers of their source and target nodes, without any translation applied to them
+        case "internetworkingOverlay":
             result = null;
             break;
         //every interfaceIn line should be aligned to the right from the source and to the left from the target side
@@ -843,7 +898,7 @@ function getVectorDirection(type, direction){
                 result = "left";
             break;
         //links between routers should be always aligned to the right from the source and to the left from the target
-        case "routerToRouter":
+        case "internetworking":
             if(direction == "out")
                 result = "right";
             else
@@ -887,7 +942,7 @@ function updateLinks(timestamp){
         linkUsage = json;
 
         setLinkProperties(500);
-        getStats(timestamp);
+        //getStats(timestamp);
     });
 }
 
@@ -961,7 +1016,7 @@ function setLinkProperties(transitionLength) {
     if (linkUsage)
         link.each(function (d) {
             var l = d3.select(this);
-            if (d.type != "overlay") {
+            if (d.type != "interfaceOverlay" && d.type != "internetworkingOverlay") {
                 getLinkUsage(d, linkUsage);
                 colorLink(l, d, transitionLength);
                 animateLink(l, d);
@@ -971,7 +1026,7 @@ function setLinkProperties(transitionLength) {
 
 function getLinkUsage(d, json) {
     switch (d.type) {
-        case ("routerToRouter"): {
+        case ("internetworking"): {
             for (var i = 0; i < json.routerLinks.length; i++) {
                 if (d.topologyId == json.routerLinks[i].id){
                     d.load = json.routerLinks[i].load;
