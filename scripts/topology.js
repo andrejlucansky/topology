@@ -639,8 +639,8 @@ function nodeMouseMoveListener(d){
                 "<br>Logical role: " + d.logicalRole +
                 "<br>Topology Id: " + d.topologyId +
                 "<br>Id: " + d.id)
-        .style("left", (d3.event.pageX + 15) + "px")
-        .style("top", (d3.event.pageY + 15) + "px");
+        .style("left", (d3.event.x + 15) + "px")
+        .style("top", (d3.event.y + 15) + "px");
 }
 
 function lineMouseMoveListener(d){
@@ -669,8 +669,8 @@ function lineMouseMoveListener(d){
                 "<br>Bandwidth: " + interfaceOut.bandwidth + " " + interfaceOut.bwUnit +
                 "<br>Load: " + roundNumber(interfaceOut.load, 2) +
                 "<br>Speed: " + roundNumber(interfaceOut.speed, 2))
-        .style("left", (d3.event.pageX + 15) + "px")
-        .style("top", (d3.event.pageY + 15) + "px");
+        .style("left", (d3.event.x + 15) + "px")
+        .style("top", (d3.event.y + 15) + "px");
 }
 
 function interNetworkingLineMouseMoveListener(d){
@@ -698,8 +698,8 @@ function interNetworkingLineMouseMoveListener(d){
                 "<br>Bandwidth: " + targetToSourceLine.bandwidth + " " + targetToSourceLine.bwUnit +
                 "<br>Load: " + roundNumber(targetToSourceLine.load, 2) +
                 "<br>Speed: " + roundNumber(targetToSourceLine.speed, 2))
-        .style("left", (d3.event.pageX + 15) + "px")
-        .style("top", (d3.event.pageY + 15) + "px");
+        .style("left", (d3.event.x + 15) + "px")
+        .style("top", (d3.event.y + 15) + "px");
 }
 
 function lineMouseDownListener(d) {
