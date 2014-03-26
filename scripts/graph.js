@@ -4,6 +4,12 @@
  * of the graph should be available here.
  */
 
+function Graph(id){
+
+    this.imagePath = "../images/";
+    this.width = parseInt(d3.select("#"+ id).style("width"));
+    this.height = parseInt(d3.select("#" + id).style("height"));
+
 var nodeSize = 48,
     lineBreakNodeSize = 10,
     defaultNormalLength = 2,
@@ -18,12 +24,15 @@ var nodeSize = 48,
     simulationInterval,
     simulationIntervalLength = 5000,
     defaultSpeed = 1105,
-    performanceTest = true;
+    performanceTest = false;
 
-var topologyConnectionString = "http://147.251.43.124:8080/visualisationdata-test/network/topology",
-    linkUsageConnectionString = "http://147.251.43.124:8080/visualisationdata-test/network/usage/link",
-    logicalRolesConnectionString = "http://147.251.43.124:8080/visualisationdata-test/network/topology/logicalRoles",
-    timestampsConnectionString = "http://147.251.43.124:8080/visualisationdata-test/time/all-timestamps";
+    var graph = this;
+
+var connectionString,
+    topologyConnectionString,
+    linkUsageConnectionString,
+    logicalRolesConnectionString,
+    timestampsConnectionString;
 
 var cloudBackground = {
     "stroke": "#3D3D3F",
@@ -69,60 +78,28 @@ var colors = {
     "intervals" : 5
 };
 
-var topology = d3.select("#topology");
+var imageType = "_transparent";
+var imageFormat = ".svg";
 
-var svg = topology
-    .append("svg");
-
-var tooltip = topology
-    .append("div")
-    .attr("class", "tooltip")
-    .style("opacity", 0);
-
-
-var imageType = "_transparent",
-    imageFormat = ".svg",
-    imagePath;
-
-if(typeof Liferay !== "undefined"){
-    imagePath = "/Topology-portlet/images/"; // pre liferay
-
-/*    Liferay.Portlet.ready(
-        function(portletId, node) {
-            console.log("portlet ready");
-            Liferay.on('updatedLayout', function(event) {
-                var portlet = d3.select("#" + portletId)
-                width = portlet.style("width");
-                height = portlet.style("width");
-
-                svg.style("width", portlet.style("width"));
-                svg.style("height", portlet.style("height"))
-            });
-        }
-    );*/
-}
-else{
-    imagePath = "../images/";  //pre testovanie
-}
-
-var width = parseInt(d3.select("svg").style("width")),
-    height = parseInt(d3.select("svg").style("height"));
+var graphElement = d3.select("#graph");
+var svg = graphElement.append("svg").style({'width' : graph.width + 'px', 'height' : graph.height + 'px', 'overflow' : 'hidden'});
+var tooltip = graphElement.append("div").attr("class", "tooltip").style("opacity", 0);
 
 var x = d3.scale.linear()
-    .domain([0, width])
-    .range([0, width]);
+    .domain([0, this.width])
+    .range([0, this.width]);
 
 var y = d3.scale.linear()
-    .domain([0, height])
-    .range([0, height]);
+    .domain([0, this.height])
+    .range([0, this.height]);
 
 var force = d3.layout.force()
-    .size([width, height])
+    .size([this.width, this.height])
     .on("tick", tick)
     .on("end", end)
     .linkDistance(function(d){
         if(d.type == "internetworking" || d.type == "internetworkingOverlay")
-            return 1000;
+            return 500;
         else
             return 80;
     })
@@ -136,12 +113,6 @@ var link = svg.selectAll(".link"),
 var nodes,
     links;
 
-//on pressing Esc, stop simulation.
-window.onkeydown = function(event){
-    if(event.keyCode == 27)
-        stopSimulation();
-};
-
 /*svg.on("mousemove",function(){
     var c = d3.mouse(this);
     d3.selectAll("#mouse").text("mouse x: " + c[0] + " y: " + c[1]);
@@ -150,32 +121,45 @@ window.onkeydown = function(event){
 
 svg.call(d3.behavior.zoom().x(x).y(y).scaleExtent([0.1, 10]).on("zoom", zoomListener)).on("dblclick.zoom", null);
 
-d3.json(timestampsConnectionString, function(json){
-    timestamps = json.timestamps;
-});
+    this.init = function(event){
+        connectionString = event.api,
+        topologyConnectionString = connectionString  + "/network/topology",
+        linkUsageConnectionString = connectionString + "/network/usage/link",
+        logicalRolesConnectionString = connectionString + "/network/topology/logicalRoles",
+        timestampsConnectionString = connectionString + "/time/all-timestamps";
 
-d3.json(topologyConnectionString, function (json) {
-    if(performanceTest)
-        root = createTestingNodesAndLinks();
-    else
-        root = json;
-
-    update();
-    zoomListener();
-
-    /**
-     * Connection to KYPO time portlet events
-     */
-    if(typeof Liferay !== "undefined"){
-        Liferay.on('time_timestamps', function(event) {
-            console.log("Time: catching timestamps: " + event.from +" "+ event.to +" "+ event.range);
-            updateLinks(event.to);
-            updateRoles(event.to);
+        console.log(timestampsConnectionString);
+        d3.json(timestampsConnectionString, function(json){
+            timestamps = json.timestamps;
         });
-    } else{
-        startSimulation();
+
+        d3.json(topologyConnectionString, function (json) {
+            if(performanceTest)
+                root = createTestingNodesAndLinks();
+            else
+                root = json;
+
+            update();
+            zoomListener();
+
+            if(typeof event.to == "undefined"){
+                 startSimulation();
+            }
+        });
+
+        //on pressing Esc, stop simulation.
+        window.onkeydown = function(event){
+            if(event.keyCode == 27)
+                stopSimulation();
+        };
     }
-});
+
+    this.resize = function(){
+        graphElement.style({'width' : this.width + 'px', 'height' : this.height + 'px'});
+        svg.style({'width' : this.width + 'px', 'height' : this.height + 'px'});
+        force.size([this.width, this.height]);
+    }
+
 
 function getChildren(root) {
     var nodes = [], i = 0;
@@ -310,6 +294,13 @@ function createLinks(){
         d.colorScale = new RGBScale(colors);
     })
 
+    link.filter(".internetworking, .interfaceIn, .interfaceOut").each(function(){
+       d3.select(this).attr("stroke-width", 2)
+           .attr("stroke-width", 2)
+           .attr("stroke-dasharray", "3, 2")
+           .attr("stroke", "rgba(0, 0, 0, 1)");
+    })
+
     link.filter(".interfaceOverlay").each(function (d) {
         d3.select(this)
             .on("mouseover", mouseOverListener)
@@ -336,9 +327,9 @@ function createNodes(){
     //update router node icon on collapse
     node.select("image").attr("xlink:href", function(d){
         if(d.physicalRole == "lineBreak")
-            return imagePath + d.physicalRole + imageType + ".png";
+            return graph.imagePath + d.physicalRole + imageType + ".png";
         else
-            return imagePath + d.physicalRole + imageType + imageFormat;
+            return graph.imagePath + d.physicalRole + imageType + imageFormat;
     });
 
     node.each(function(d){
@@ -371,9 +362,9 @@ function createNodes(){
     group.append("image")
         .attr("xlink:href", function (d) {
             if(d.physicalRole == "lineBreak")
-                return imagePath + d.physicalRole + imageType + ".png";
+                return graph.imagePath + d.physicalRole + imageType + ".png";
             else
-                return imagePath + d.physicalRole + imageType + imageFormat;
+                return graph.imagePath + d.physicalRole + imageType + imageFormat;
         })
         .attr("x", function (d) {
             return -(d.size.width / 2);
@@ -442,13 +433,12 @@ function insertCircles(){
         }
     });
 
-    console.log("start");
     hostNodes.forEach(function(h){
         var color = "hsla(" + Math.random() * 360 + ",100%," + Math.max(Math.random() * 100, 25) + "%, 0.75)";
 
         node.filter(".interface").each(function(d){
             if(h[1] > 1 && d.hostNodeId == h[0] && !d.circled){
-                console.log("yes");
+
                 d3.select(this)
                     .insert("circle",":first-child")
                     .attr("class", "hostnode")
@@ -461,7 +451,7 @@ function insertCircles(){
                     d.circleColor = color;
             } else if(h[1] <= 1 && d.hostNodeId == h[0] && d.circled){
                 d.circled = false;
-                console.log("no");
+
                 d3.select(this).select("circle").remove();
             }
         })
@@ -639,8 +629,8 @@ function nodeMouseMoveListener(d){
                 "<br>Logical role: " + d.logicalRole +
                 "<br>Topology Id: " + d.topologyId +
                 "<br>Id: " + d.id)
-        .style("left", (d3.event.x + 15) + "px")
-        .style("top", (d3.event.y + 15) + "px");
+        .style("left", (d3.event.pageX + 15) + "px")
+        .style("top", (d3.event.pageY + 15) + "px");
 }
 
 function lineMouseMoveListener(d){
@@ -669,8 +659,8 @@ function lineMouseMoveListener(d){
                 "<br>Bandwidth: " + interfaceOut.bandwidth + " " + interfaceOut.bwUnit +
                 "<br>Load: " + roundNumber(interfaceOut.load, 2) +
                 "<br>Speed: " + roundNumber(interfaceOut.speed, 2))
-        .style("left", (d3.event.x + 15) + "px")
-        .style("top", (d3.event.y + 15) + "px");
+        .style("left", (d3.event.pageX + 15) + "px")
+        .style("top", (d3.event.pageY + 15) + "px");
 }
 
 function interNetworkingLineMouseMoveListener(d){
@@ -698,8 +688,8 @@ function interNetworkingLineMouseMoveListener(d){
                 "<br>Bandwidth: " + targetToSourceLine.bandwidth + " " + targetToSourceLine.bwUnit +
                 "<br>Load: " + roundNumber(targetToSourceLine.load, 2) +
                 "<br>Speed: " + roundNumber(targetToSourceLine.speed, 2))
-        .style("left", (d3.event.x + 15) + "px")
-        .style("top", (d3.event.y + 15) + "px");
+        .style("left", (d3.event.pageX + 15) + "px")
+        .style("top", (d3.event.pageY + 15) + "px");
 }
 
 function lineMouseDownListener(d) {
@@ -920,8 +910,8 @@ function startSimulation(){
         if(timestampIndex >= timestamps.length - 1)
             window.clearInterval(simulationInterval);
 
-        updateLinks(timestamps[timestampIndex]);
-        updateRoles(timestamps[timestampIndex]);
+        graph.updateLinks(timestamps[timestampIndex]);
+        graph.updateRoles(timestamps[timestampIndex]);
     }, simulationIntervalLength);
 }
 
@@ -937,7 +927,7 @@ function stopSimulation(){
  * @param timestamp Timestamp is representing time interval in simulation. In this function, timestamp is used to
  * define interval, for which speed and color of links should be shown to the user.
  */
-function updateLinks(timestamp){
+this.updateLinks = function(timestamp){
     d3.json(linkUsageConnectionString + "?timestamp=" + timestamp, function (json) {
         linkUsage = json;
 
@@ -952,7 +942,7 @@ function updateLinks(timestamp){
  * @param timestamp Timestamp is representing time interval in simulation. In this function, timestamp is used to
  * define interval, for which logical roles should be shown to the user.
  */
-function updateRoles(timestamp){
+this.updateRoles = function(timestamp){
     d3.json(logicalRolesConnectionString + "?absoluteTimestamp=" + timestamp, function(json){
         topologyRoles = json;
         setRoles();
@@ -969,7 +959,7 @@ function setRoles() {
             for (var i = 0; i < topologyRoles.interfaceRoles.length; i++) {
                 if (d.topologyId == topologyRoles.interfaceRoles[i].topologyId) {
                     if(topologyRoles.interfaceRoles[i].role != "idle"){
-                        newImageSource = imagePath + topologyRoles.interfaceRoles[i].role + imageFormat;
+                        newImageSource = graph.imagePath + topologyRoles.interfaceRoles[i].role + imageFormat;
                     }
                     d.logicalRole = topologyRoles.interfaceRoles[i].role;
                 }
@@ -1406,3 +1396,5 @@ var defaultOptions = {
     bubbles: true,
     cancelable: true
 };
+
+}

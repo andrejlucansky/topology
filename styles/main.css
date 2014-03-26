@@ -1,0 +1,114 @@
+body{
+    margin: 0px;
+}
+
+#graph {
+    position: relative;
+    overflow: hidden;
+    background-color: rgb(230, 230, 230);
+}
+
+.link.interfaceOverlay {
+    stroke-width: 8px;
+    stroke-dasharray: 1, 0;
+    stroke: rgba(255, 255, 255, 0);
+}
+
+.link.internetworkingOverlay {
+    stroke-width: 8px;
+    stroke-dasharray: 1, 0;
+    stroke: rgba(255, 255, 255, 0);
+}
+
+.node text {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10px;
+    pointer-events: none;
+}
+
+div.tooltip {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    text-align: left;
+    width: auto;
+    height: auto;
+    padding: 8px;
+    font: 10px sans-serif;
+    background: #ddd;
+    border: solid 1px #aaa;
+    border-radius: 8px;
+    pointer-events: none;
+}
+
+button{
+    position: relative;
+    min-width: 60px;
+}
+
+#menu_button{
+    position: absolute;
+    left: 0px;
+    top: 0px;
+}
+
+.configuration{
+    text-align: left;
+    width: auto;
+    height: auto;
+    padding: 8px;
+    font: 10px sans-serif;
+    background: #ddd;
+    border: solid 1px #aaa;
+    border-radius: 8px;
+
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.configuration.outer{
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    opacity: 0;
+    display: none;
+}
+
+.configuration.inner{
+    margin-top: 2px;
+    margin-bottom: 2px;
+    border-radius: 4px;
+}
+
+.configuration table{
+    width: 100%;
+}
+
+.configuration table td{
+    padding: 5px;
+    vertical-align: middle;
+}
+
+.configuration table th {
+    text-align: center;
+}
+
+.configuration input{
+    float:right;
+
+    /*width: 20px;*/
+}
+
+/*        #stats {
+            height: 90px;
+            width: 350px;
+            margin-top: 20px;
+            border: 1px solid;
+            position: absolute;
+            top: 0px;
+            right: 0px;
+        }*/
