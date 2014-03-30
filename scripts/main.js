@@ -43,7 +43,7 @@
                 graph.resize();
             });
 
-            Liferay.on('time_timestamps', function(event) {
+            Liferay.on('time_timestamps', function(event) {;
                 graph.updateLinks(event.to);
                 graph.updateRoles(event.to);
             });

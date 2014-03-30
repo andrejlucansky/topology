@@ -128,7 +128,6 @@ svg.call(d3.behavior.zoom().x(x).y(y).scaleExtent([0.1, 10]).on("zoom", zoomList
         logicalRolesConnectionString = connectionString + "/network/topology/logicalRoles",
         timestampsConnectionString = connectionString + "/time/all-timestamps";
 
-        console.log(timestampsConnectionString);
         d3.json(timestampsConnectionString, function(json){
             timestamps = json.timestamps;
         });
@@ -142,9 +141,9 @@ svg.call(d3.behavior.zoom().x(x).y(y).scaleExtent([0.1, 10]).on("zoom", zoomList
             update();
             zoomListener();
 
-            if(typeof event.to == "undefined"){
+/*            if(event.to == undefined){
                  startSimulation();
-            }
+            }*/
         });
 
         //on pressing Esc, stop simulation.
@@ -629,8 +628,8 @@ function nodeMouseMoveListener(d){
                 "<br>Logical role: " + d.logicalRole +
                 "<br>Topology Id: " + d.topologyId +
                 "<br>Id: " + d.id)
-        .style("left", (d3.event.pageX + 15) + "px")
-        .style("top", (d3.event.pageY + 15) + "px");
+        .style("left", (d3.event.layerX + 15) + "px")
+        .style("top", (d3.event.layerY + 15) + "px");
 }
 
 function lineMouseMoveListener(d){
@@ -659,8 +658,8 @@ function lineMouseMoveListener(d){
                 "<br>Bandwidth: " + interfaceOut.bandwidth + " " + interfaceOut.bwUnit +
                 "<br>Load: " + roundNumber(interfaceOut.load, 2) +
                 "<br>Speed: " + roundNumber(interfaceOut.speed, 2))
-        .style("left", (d3.event.pageX + 15) + "px")
-        .style("top", (d3.event.pageY + 15) + "px");
+        .style("left", (d3.event.layerX + 15) + "px")
+        .style("top", (d3.event.layerY + 15) + "px");
 }
 
 function interNetworkingLineMouseMoveListener(d){
@@ -688,8 +687,8 @@ function interNetworkingLineMouseMoveListener(d){
                 "<br>Bandwidth: " + targetToSourceLine.bandwidth + " " + targetToSourceLine.bwUnit +
                 "<br>Load: " + roundNumber(targetToSourceLine.load, 2) +
                 "<br>Speed: " + roundNumber(targetToSourceLine.speed, 2))
-        .style("left", (d3.event.pageX + 15) + "px")
-        .style("top", (d3.event.pageY + 15) + "px");
+        .style("left", (d3.event.layerX + 15) + "px")
+        .style("top", (d3.event.layerY + 15) + "px");
 }
 
 function lineMouseDownListener(d) {
