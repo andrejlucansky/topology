@@ -1,0 +1,39 @@
+{
+    "links" : [],
+    "children" : [
+        {
+            "id" : 1,
+            "topologyId" : "r_1",
+            "name" : "Central node 1",
+            "address4" : null,
+            "physicalRole" : "router",
+            "x" : 100,
+            "y" : 100,
+            "fixed" : true,
+            "children" : [
+                {
+                    "id" : 1,
+                    "topologyId" : "i_1",
+                    "hostNodeId" : 1,
+                    "name" : "Server",
+                    "address4" : null,
+                    "physicalRole" : "desktop"
+                },
+                {
+                    "id" : 5,
+                    "topologyId" : "i_5",
+                    "hostNodeId" : 5,
+                    "name" : "Tablet",
+                    "physicalRole" : "mobile"
+                },
+                {
+                    "id" : 6,
+                    "topologyId" : "i_6",
+                    "hostNodeId" : 6,
+                    "name" : "Computer",
+                    "physicalRole" : "server"
+                }
+            ]
+        }
+    ]
+}

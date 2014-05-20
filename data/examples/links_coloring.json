@@ -1,0 +1,152 @@
+{
+    "links" : [
+        {
+            "id" : 1,
+            "source" : "r_1",
+            "target" : "r_2"
+        },
+        {
+            "id" : 2,
+            "source" : "r_2",
+            "target" : "r_1"
+        },
+        {
+            "id" : 3,
+            "source" : "r_3",
+            "target" : "r_4"
+        },
+        {
+            "id" : 4,
+            "source" : "r_4",
+            "target" : "r_3"
+        },
+        {
+            "id" : 5,
+            "source" : "r_5",
+            "target" : "r_6"
+        },
+        {
+            "id" : 6,
+            "source" : "r_6",
+            "target" : "r_5"
+        },
+        {
+            "id" : 7,
+            "source" : "r_7",
+            "target" : "r_8"
+        },
+        {
+            "id" : 8,
+            "source" : "r_8",
+            "target" : "r_7"
+        },
+        {
+            "id" : 9,
+            "source" : "r_9",
+            "target" : "r_10"
+        },
+        {
+            "id" : 10,
+            "source" : "r_10",
+            "target" : "r_9"
+        }
+    ],
+    "children" : [
+        {
+            "id" : 1,
+            "topologyId" : "r_1",
+
+            "address4" : null,
+            "physicalRole" : "desktop",
+            "children" : [] ,
+            "x" : 100,
+            "y" : 100      ,
+            "fixed" : true
+        },
+        {
+            "id" : 2,
+            "topologyId" : "r_2",
+            "physicalRole" : "router",
+            "children" : [] ,
+            "x" : 100,
+            "y" : 200       ,
+            "fixed" : true
+        },
+        {
+            "id" : 3,
+            "topologyId" : "r_3",
+            "address4" : null,
+            "physicalRole" : "desktop",
+            "children" : []  ,
+            "x" : 200,
+            "y" : 100       ,
+            "fixed" : true
+        },
+        {
+            "id" : 4,
+            "topologyId" : "r_4",
+            "physicalRole" : "router",
+            "children" : []  ,
+            "x" : 200,
+            "y" : 200     ,
+            "fixed" : true
+        },
+        {
+            "id" : 5,
+            "topologyId" : "r_5",
+            "address4" : null,
+            "physicalRole" : "desktop",
+            "children" : []  ,
+            "x" : 300,
+            "y" : 100     ,
+            "fixed" : true
+        },
+        {
+            "id" : 6,
+            "topologyId" : "r_6",
+            "physicalRole" : "router",
+            "children" : [] ,
+            "x" : 300,
+            "y" : 200    ,
+            "fixed" : true
+        },
+        {
+            "id" : 7,
+            "topologyId" : "r_7",
+            "address4" : null,
+            "physicalRole" : "desktop",
+            "children" : []  ,
+            "x" : 400,
+            "y" : 100   ,
+            "fixed" : true
+        },
+        {
+            "id" : 8,
+            "topologyId" : "r_8",
+            "physicalRole" : "router",
+            "children" : []   ,
+            "x" : 400,
+            "y" : 200      ,
+            "fixed" : true
+        },
+        {
+            "id" : 9,
+            "topologyId" : "r_9",
+            "address4" : null,
+            "physicalRole" : "desktop",
+            "children" : [],
+            "x" : 500,
+            "y" : 100   ,
+            "fixed" : true
+        },
+        {
+            "id" : 10,
+            "topologyId" : "r_10",
+            "physicalRole" : "router",
+            "children" : [] ,
+            "x" : 500,
+            "y" : 200,
+            "fixed" : true
+        }
+    ]
+}

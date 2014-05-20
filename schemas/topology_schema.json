@@ -1,0 +1,66 @@
+{
+    "$schema" : "http://json-schema.org/draft-04/schema#",
+
+    "title" : "Network topology JSON Schema",
+    "description" : "This JSON Schema describes valid format of JSONs describing network topology, including nodes and links among them.",
+
+    "type" : "object",
+    "properties" : {
+        "links" : {
+            "description" : "All links between router nodes in the network. Each link has source node, target node. This node order defines direction of the link.",
+            "type" : "array",
+            "uniqueItems" : true,
+            "items" : {
+                "description" : "Link between two routers.",
+                "type" : "object",
+                "properties" : {
+                    "id" : {"description" : "Unique identification number of the link in both the database and network visualization.", "type" : "number", "multipleOf" : 1.0, "minimum" : 0},
+                    "srcId" : {"description" : "Identification number of the source router node in the database.", "type" : "number", "multipleOf" : 1.0, "minimum" : 0},
+                    "destId" : {"description" : "Identification number of the target router node in the database", "type" : "number", "multipleOf" : 1.0, "minimum" : 0},
+                    "source" : {"description" : "Unique identification number of the element (source router node) in the network visualization.", "type" : "string", "pattern" : "^r_[0-9]{1,}$"},
+                    "target" : {"description" : "Unique identification number of the element (target router node) in the network visualization.", "type" : "string", "pattern" : "^r_[0-9]{1,}$"}
+                },
+                "required" : ["id", "source", "target"]
+            }
+        },
+        "children" : {
+            "description" : "Central nodes of sub-networks in the network. Sub-networks have star topology.",
+            "type" : "array",
+            "uniqueItems" : true,
+            "items" : {
+                "description" : "Central node of the sub-network.",
+                "type" : "object",
+                "properties" : {
+                    "id" : {"description" : "Unique identification number of the central node in the database.", "type": "number", "multipleOf" : 1.0, "minimum" : 0},
+                    "topologyId" : {"description" : "Unique identification number of the element (central node) in the network visualization.", "type" : "string", "pattern" : "^r_[0-9]{1,}$"},
+                    "name" : {"description" : "Name of the device (central node) in the network.", "type" : "string"},
+                    "address4" : {"description" : "IPv4 address of the device (central node) in the network.", "type" : "string", "format" : "ipv4"},
+                    "physicalRole" : {"description" : "Definition of the device (central node) type in the visualization.", "type" : "string", "enum" : ["router"]},
+                    "children" : {
+                        "description" : "Nodes of the star topology sub-network, connected to the central node. These nodes represent device interfaces. Devices access the network via these interfaces.",
+                        "type" : "array",
+                        "uniqueItems" : true,
+                        "items" : {
+                            "description" : "Node of the sub-network.",
+                            "type" : "object",
+                            "properties" : {
+                                "id" : {"description" : "Unique identification number of the device interface in the database.", "type": "number", "multipleOf" : 1.0, "minimum" : 0},
+                                "topologyId" : {"description" : "Unique identification number of the element (device interface) in the network visualization.", "type" : "string", "pattern" : "^i_[0-9]{1,}$"},
+                                "hostNodeId" : {"description" : "Unique identification number of the device (interface host) in the database.", "type" : "number", "multipleOf" : 1.0, "minimum" : 0},
+                                "name" : {"description" : "Name of the device interface in the network.", "type" : "string"},
+                                "address4" : {"description" : "IPv4 address of the device interface in the sub-network.", "type" : "string", "format" : "ipv4"},
+                                "physicalRole" : {"description" : "Definition of the device type in the visualization.", "type" : "string", "enum" : ["desktop", "mobile", "server"]}
+
+
+                            },
+                            "required" : ["id", "topologyId", "physicalRole"]
+                        }
+                    }
+
+                },
+                "required" : ["id", "topologyId", "physicalRole",  "children"]
+            }
+        }
+    },
+    "required" : ["links", "children"]
+}

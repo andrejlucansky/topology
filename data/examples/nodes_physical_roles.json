@@ -1,0 +1,45 @@
+{
+    "links" : [],
+    "children" : [
+        {
+            "id" : 1,
+            "topologyId" : "i_1",
+            "name" : "Desktop",
+            "physicalRole" : "desktop",
+            "x" : 100,
+            "y" : 100,
+            "fixed" : true,
+            "children" : []
+        },
+        {
+            "id" : 2,
+            "topologyId" : "i_2",
+            "name" : "Mobile",
+            "physicalRole" : "mobile",
+            "x" : 200,
+            "y" : 100,
+            "fixed" : true,
+            "children" : []
+        },
+        {
+            "id" : 3,
+            "topologyId" : "i_3",
+            "name" : "Server",
+            "physicalRole" : "server",
+            "x" : 300,
+            "y" : 100,
+            "fixed" : true,
+            "children" : []
+        },
+        {
+            "id" : 4,
+            "topologyId" : "r_4",
+            "name" : "Router",
+            "physicalRole" : "router",
+            "x" : 400,
+            "y" : 100,
+            "fixed" : true,
+            "children" : []
+        }
+    ]
+}

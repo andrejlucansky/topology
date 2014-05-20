@@ -1,0 +1,35 @@
+{
+    "interfaceRoles" : [
+        {
+            "id" : 1,
+            "topologyId" : "i_3",
+            "role" : "victim"
+        },
+        {
+            "id" : 2,
+            "topologyId" : "i_5",
+            "role" : "master"
+        },
+        {
+            "id" : 3,
+            "topologyId" : "i_2",
+            "role" : null
+        },
+        {
+            "id" : 4,
+            "topologyId" : "i_1",
+            "role" : "bot"
+        },
+        {
+            "id" : 3,
+            "topologyId" : "i_4",
+            "role" : "bot"
+        },
+        {
+            "id" : 3,
+            "topologyId" : "i_6",
+            "role" : "bot"
+        }
+
+    ]
+}

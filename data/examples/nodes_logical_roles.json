@@ -1,0 +1,35 @@
+{
+    "links" : [],
+    "children" : [
+        {
+            "id" : 1,
+            "topologyId" : "i_1",
+            "name" : "Victim",
+            "physicalRole" : "victim",
+            "x" : 100,
+            "y" : 100,
+            "fixed" : true,
+            "children" : []
+        },
+        {
+            "id" : 2,
+            "topologyId" : "i_2",
+            "name" : "Master",
+            "physicalRole" : "master",
+            "x" : 200,
+            "y" : 100,
+            "fixed" : true,
+            "children" : []
+        },
+        {
+            "id" : 3,
+            "topologyId" : "i_3",
+            "name" : "Bot",
+            "physicalRole" : "bot",
+            "x" : 300,
+            "y" : 100,
+            "fixed" : true,
+            "children" : []
+        }
+    ]
+}

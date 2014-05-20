@@ -1,0 +1,17 @@
+{
+    "$schema" : "http://json-schema.org/draft-04/schema#",
+
+    "title" : "All Timestamps JSON Schema",
+    "description" : "This JSON Schema describes valid format of JSONs containing all experiment timestamps.",
+
+    "type" : "object",
+    "properties" : {
+        "timestamps": {
+            "description" : "All timestamps of measurements in the experiment. Timestamps mark times of interest from measurement's point of view.",
+            "type": "array",
+            "uniqueItems": true,
+            "items": {"description" : "Unique time of interest in the experiment.", "type" : "number", "multipleOf" : 1.0, "minimum" : 0}
+        }
+    },
+    "required" : ["timestamps"]
+}

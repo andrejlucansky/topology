@@ -1,0 +1,85 @@
+{
+    "links" : [
+        {
+            "id" : 1,
+            "source" : "r_1",
+            "target" : "r_2"
+        },
+        {
+            "id" : 2,
+            "source" : "r_2",
+            "target" : "r_1"
+        }
+    ],
+    "children" : [
+        {
+            "id" : 1,
+            "topologyId" : "r_1",
+            "name" : "Central node 1",
+            "address4" : null,
+            "physicalRole" : "router",
+            "x" : 100,
+            "y" : 100,
+            "fixed" : true,
+            "children" : [
+                {
+                    "id" : 1,
+                    "topologyId" : "i_1",
+                    "hostNodeId" : 1,
+                    "name" : "Device interface 1",
+                    "address4" : null,
+                    "physicalRole" : "desktop"
+                },
+                {
+                    "id" : 2,
+                    "topologyId" : "i_2",
+                    "hostNodeId" : 2,
+                    "name" : "Device interface 2",
+                    "address4" : null,
+                    "physicalRole" : "mobile"
+                },
+                {
+                    "id" : 3,
+                    "topologyId" : "i_3",
+                    "hostNodeId" : 3,
+                    "name" : "Device interface 3",
+                    "address4" : null,
+                    "physicalRole" : "server"
+                }
+            ]
+        },
+        {
+            "id" : 2,
+            "topologyId" : "r_2",
+            "name" : "Central node 2",
+            "physicalRole" : "router",
+            "x" : 200,
+            "y" : 200,
+            "fixed" : true,
+            "children" : [
+                {
+                    "id" : 4,
+                    "topologyId" : "i_4",
+                    "hostNodeId" : 4,
+                    "name" : "Device interface 4",
+                    "address4" : null,
+                    "physicalRole" : "desktop"
+                },
+                {
+                    "id" : 5,
+                    "topologyId" : "i_5",
+                    "hostNodeId" : 5,
+                    "name" : "Device interface 5",
+                    "physicalRole" : "mobile"
+                },
+                {
+                    "id" : 6,
+                    "topologyId" : "i_6",
+                    "hostNodeId" : 6,
+                    "name" : "Device interface 6",
+                    "physicalRole" : "server"
+                }
+            ]
+        }
+    ]
+}

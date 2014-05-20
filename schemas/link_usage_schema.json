@@ -1,0 +1,68 @@
+{
+    "$schema" : "http://json-schema.org/draft-04/schema#",
+
+    "title" : "Network link usage JSON Schema",
+    "description" : "This JSON Schema describes valid format of JSONs describing network link usage.",
+
+    "definitions" : {
+        "link" : {
+            "description" : "Usage of link in the network.",
+            "type" : "object",
+            "properties" : {
+                "numberOfBits" : {"description" : "Absolute number of bits that are being sent through the link at the moment.", "type" : "number", "multipleOf" : 1.0, "minimum" : 0},
+                "bandwidth" : {"description" : "Maximum transfer capacity of the link.", "type" : "number", "multipleOf" : 1.0, "minimum" : 0},
+                "bwUnit" : {"description" : "Capacity unit of the bandwidth, e.g. Mb/s.", "type" : "string"},
+                "load" : {"description" : "Ratio of 'number of bits' and bandwidth of the link.", "type" : "number", "minimum" : 0, "maximum" : 1},
+                "speed" : {"description" : "Ratio of 'number of bits' of this link and 'number of bits' of the link with highest value of 'number of bits' property at the moment.", "type" : "number", "minimum" : 0, "maximum" : 1}
+            },
+            "required" : ["load", "speed"]
+        },
+        "interfaceLink" : {
+            "description" : "Usage of link between central node of the sub-network and device interface.",
+            "allOf" : [
+                {"$ref": "#/definitions/link"},
+                {
+                    "properties": {
+                        "interfaceTopologyId" : {"description" : "Unique identification number of the element (interface link) in the network visualization.", "type": "string", "pattern" : "^i_[0-9]{1,}$"}
+                    },
+                    "required": ["interfaceTopologyId"]
+                }
+            ]
+        },
+        "routerLink" : {
+            "description" : "Usage of link between two central nodes in the network.",
+            "allOf" : [
+                {"$ref": "#/definitions/link"},
+                {
+                    "properties": {
+                        "id": {"description" : "Unique identification number of the element (router link) in both the database and network visualization.", "type": "number","multipleOf": 1.0,"minimum": 0}
+                    },
+                    "required": ["id"]
+                }
+            ]
+        }
+    },
+
+    "type" : "object",
+    "properties" : {
+        "routerLinks": {
+            "description" : "Usage of links between central nodes in the network.",
+            "type": "array",
+            "uniqueItems": true,
+            "items": {"$ref": "#/definitions/routerLink"}
+        },
+        "interfaceLinksIn" : {
+            "description" : "Usage of links between central nodes of the sub-networks and device interfaces, in direction from central node to interfaces.",
+            "type" : "array",
+            "uniqueItems" : true,
+            "items" : {"$ref": "#/definitions/interfaceLink"}
+        },
+        "interfaceLinksOut" : {
+            "description" : "Usage of links between central nodes of the sub-networks and device interfaces, in direction from interfaces to central node.",
+            "type" : "array",
+            "uniqueItems" : true,
+            "items" : {"$ref": "#/definitions/interfaceLink"}
+        }
+    },
+    "required" : ["routerLinks", "interfaceLinksIn", "interfaceLinksOut"]
+}

@@ -1,0 +1,58 @@
+{
+    "routerLinks" : [
+
+    ],
+    "interfaceLinksIn" : [
+        {
+            "interfaceTopologyId" : "i_1",
+            "numberOfBits" : "8388608",
+            "bandwidth" : "8",
+            "bwUnit" : "Mb",
+            "load" : 1,
+            "speed" : 1
+        },
+        {
+            "interfaceTopologyId" : "i_2",
+            "numberOfBits" : "2097152",
+            "bandwidth" : "8",
+            "bwUnit" : "Mb",
+            "load" : 0.25,
+            "speed" : 0.25
+        },
+        {
+            "interfaceTopologyId" : "i_3",
+            "numberOfBits" : "1048576",
+            "bandwidth" : "8",
+            "bwUnit" : "Mb",
+            "load" : 0.125,
+            "speed" : 0.125
+        }
+    ]
+    ,
+    "interfaceLinksOut" : [
+        {
+            "interfaceTopologyId" : "i_1",
+            "numberOfBits" : "4194304",
+            "bandwidth" : "8",
+            "bwUnit" : "Mb",
+            "load" : 0.5,
+            "speed" : 0.5
+        },
+        {
+            "interfaceTopologyId" : "i_2",
+            "numberOfBits" : "6710887",
+            "bandwidth" : "8",
+            "bwUnit" : "Mb",
+            "load" : 0.8,
+            "speed" : 0.8
+        },
+        {
+            "interfaceTopologyId" : "i_3",
+            "numberOfBits" : "4194304",
+            "bandwidth" : "8",
+            "bwUnit" : "Mb",
+            "load" : 0.5,
+            "speed" : 0.5
+        }
+    ]
+}

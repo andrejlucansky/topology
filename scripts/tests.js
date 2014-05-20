@@ -100,7 +100,7 @@ group.each(function (d) {
     if (d.physicalRole == "router") {
         d3.select(this).append("image")
             .attr("xlink:href", function (d) {
-                return imagePath + "cloud_transparent_outline.svg";
+                return imagePath + "cloud_outline.svg";
             })
             .attr("class", "cloud_bg")
             .attr("x", function (d) {

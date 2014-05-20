@@ -1,4 +1,26 @@
-/**
+/*
+ * Copyright (c) 2014, Masaryk University
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+/*
  * @author Andrej Lucansky, Masaryk Univeristy, Brno
  * @version 1.0
  *
@@ -10,7 +32,7 @@
         var graphElementId = "graph";
         var portletElement = $(window);
 
-        //set variables based on LifeRay
+        //set variables based on Liferay, get Liferay portlet body element and hide portlet overflow
         if (typeof Liferay !== "undefined") {
             portletElement =  $("#"+graphElementId).parent().parent();
             portletElement.css("overflow", "hidden");
@@ -24,7 +46,7 @@
         var graph = new Graph(graphElementId);
         var configuration = new Configuration();
 
-        //set graph properties based on LifeRay
+        //set graph properties based on Liferay presence
         if(typeof  Liferay != "undefined"){
             graph.imagePath = "/Topology-portlet/images/";
         }
@@ -35,7 +57,9 @@
             graph.resize();
         })
 
-        //LifeRay events
+        /**
+         * Liferay events
+         */
         if(typeof Liferay !== "undefined"){
             Liferay.on('updatedLayout', function (event) {
                 graph.width = portletElement.width();
@@ -56,8 +80,13 @@
 
             Liferay.fire('init', {'id' : "topology"});
         }else{
-            graph.init({"api": "http://147.251.43.124:8080/visualisationdata-test"});
+            graph.init({"api": "http://kypotest.fi.muni.cz:8080/visualisationdata"});
         }
+
+        /**
+         * Topology graph events
+         */
+
     });
 })(window, document, jQuery);
 

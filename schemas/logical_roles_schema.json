@@ -1,0 +1,26 @@
+{
+    "$schema" : "http://json-schema.org/draft-04/schema#",
+
+    "title" : "Logical roles JSON Schema of network topology nodes",
+    "description" : "This JSON Schema describes valid format of JSONs describing logical roles of nodes in the network topology.",
+
+    "type" : "object",
+    "properties" : {
+        "interfaceRoles": {
+            "description" : "Logical roles of the device interfaces in the network.",
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+                "description" : "Logical role of the device interface.",
+                "type" : "object",
+                "properties" : {
+                    "id" : {"description" : "Unique identification number of the device interface in the database.", "type" : "number", "multipleOf" : 1.0, "minimum" : 0},
+                    "topologyId" : {"description" : "Unique identification number of the element (device interface) in the network visualization.", "type": "string", "pattern" : "^i_[0-9]{1,}$"},
+                    "role" : {"description" : "Definition of the device interface role in the visualization.", "enum" : ["victim", "master", "bot", null]}
+                },
+                "required" : ["topologyId", "role"]
+            }
+        }
+    },
+    "required" : ["interfaceRoles"]
+}
