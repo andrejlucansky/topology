@@ -25,24 +25,58 @@
  * @version 1.0
  *
  * This is the graph visualization core. It contains drawing logic of the visualization, constants and settings.
- * Graph events are only mock objects and should be bound in main.js file
+ * Graph events are only mock objects and should be bound in init.js file
  */
 function Graph(id) {
     /*
      * This section contains all necessary constants required to set up a graph. Every setting
      * of the graph should be available here.
      */
-    this.imagePath = "../images/";
-    this.width = parseInt(d3.select("#" + id).style("width"));
-    this.height = parseInt(d3.select("#" + id).style("height"));
+    this.imagePath;
+    this.width;
+    this.height;
+
+    this.linebreakNodeSize = 10;
+    this.scale = 1;
+    this.translate = [0, 0];
+    this.defaultNormalLength = 2;
+    this.scaledNormalLength = this.defaultNormalLength;
+    this.zoomShrinkCondition = 1;
+
+    this.x;
+    this.y;
+
+    this.graphElement = d3.select("#" + id);
+    this.tooltip = this.graphElement.append("div").attr("class", "tooltip").style("opacity", 0);
+
+    //mock events
+    this.subnetworkLineMouseDown = function(){};
+    this.zoom = d3.behavior.zoom();
+    this.drag = d3.behavior.drag();
+    this.nodeZoom = function(){};
+    this.routerDblClick = function(){};
+    this.mouseOver = function(){};
+    this.mouseOut = function(){};
+    this.nodeMouseMove = function(){};
+    this.subnetworkLineMouseMove = function(){};
+    this.networkLineMouseMove = function(){};
+    this.linebreakDblClick = function(){};
+
+    //getters for private attributes
+    this.getLinks = function(){
+        return links;
+    }
+
+    this.getNodes = function(){
+        return nodes;
+    }
+
+    this.getForce = function(){
+        return force;
+    }
 
     var nodeSize = 48,
-        linebreakNodeSize = 10,
-        defaultNormalLength = 2,
-        scaledNormalLength = defaultNormalLength,
-        scale = 1,
-        translate = [0, 0],
-        zoomShrinkCondition = 1,
+
         root,
         timestamps,
         linkUsage,
@@ -50,11 +84,18 @@ function Graph(id) {
         simulationInterval,
         simulationIntervalLength = 5000,
         defaultSpeed = 1105,
-        performanceTest = false;
+        performanceTest = false,
+        graph = this,
+        imageFormat = ".svg",
+        svg = this.graphElement.append("svg"),
+        link = svg.selectAll(".link"),
+        node = svg.selectAll(".node"),
+        router = svg.selectAll(".router"),
+        nodes,
+        links,
+        force,
 
-    var graph = this;
-
-    var connectionString,
+        connectionString,
         topologyConnectionString,
         linkUsageConnectionString,
         logicalRolesConnectionString,
@@ -104,48 +145,41 @@ function Graph(id) {
         "intervals": 5
     };
 
-    var imageFormat = ".svg";
+    this.preInit = function(){
+        graph.width = parseInt(d3.select("#" + id).style("width"));
+        graph.height = parseInt(d3.select("#" + id).style("height"));
 
-    var graphElement = d3.select("#graph");
-    var svg = graphElement.append("svg").style({'width': graph.width + 'px', 'height': graph.height + 'px', 'overflow': 'hidden'});
-    var tooltip = graphElement.append("div").attr("class", "tooltip").style("opacity", 0);
+        graph.x = d3.scale.linear()
+            .domain([0, graph.width])
+            .range([0, graph.width]);
 
-    var x = d3.scale.linear()
-        .domain([0, this.width])
-        .range([0, this.width]);
+        graph.y = d3.scale.linear()
+            .domain([0, graph.height])
+            .range([0, graph.height]);
 
-    var y = d3.scale.linear()
-        .domain([0, this.height])
-        .range([0, this.height]);
-
-    var force = d3.layout.force()
-        .size([this.width, this.height])
-        .on("tick", tick)
-        .on("end", end)
-        .linkDistance(function (d) {
-            if (d.type == "internetworking" || d.type == "internetworkingOverlay")
-                return 500;
-            else
-                return 80;
-        })
-        .charge(-5000)
-        .chargeDistance(1000);
-
-    var link = svg.selectAll(".link"),
-        node = svg.selectAll(".node"),
-        router = svg.selectAll(".router");
-
-    var nodes,
-        links;
-
-    svg.call(d3.behavior.zoom().x(x).y(y).scaleExtent([0.1, 10]).on("zoom", zoomListener)).on("dblclick.zoom", null);
+        force = d3.layout.force()
+            .size([graph.width, graph.height])
+            .on("tick", graph.tick)
+            .on("end", end)
+            .linkDistance(function (d) {
+                if (d.type == "internetworking" || d.type == "internetworkingOverlay")
+                    return 500;
+                else
+                    return 80;
+            })
+            .charge(-5000)
+            .chargeDistance(1000);
+    }
 
     this.init = function (event) {
+        svg.style({'width': graph.width + 'px', 'height': graph.height + 'px', 'overflow': 'hidden'});
+        svg.call(graph.zoom).on("dblclick.zoom", null);
+
         connectionString = event.api,
-            topologyConnectionString = connectionString + "/network/topology",
-            linkUsageConnectionString = connectionString + "/network/usage/link",
-            logicalRolesConnectionString = connectionString + "/network/topology/logicalRoles",
-            timestampsConnectionString = connectionString + "/time/all-timestamps";
+        topologyConnectionString = connectionString + "/network/topology",
+        linkUsageConnectionString = connectionString + "/network/usage/link",
+        logicalRolesConnectionString = connectionString + "/network/topology/logicalRoles",
+        timestampsConnectionString = connectionString + "/time/all-timestamps";
 
         d3.json(timestampsConnectionString, function (json) {
             timestamps = json.timestamps;
@@ -157,8 +191,8 @@ function Graph(id) {
             else
                 root = json;
 
-            update();
-            zoomListener();
+            graph.update();
+            graph.zoom.event(svg);
 
             if (event.to == undefined) {
                 console.log("Testing simulation started!");
@@ -174,9 +208,9 @@ function Graph(id) {
     };
 
     this.resize = function () {
-        graphElement.style({'width': this.width + 'px', 'height': this.height + 'px'});
-        svg.style({'width': this.width + 'px', 'height': this.height + 'px'});
-        force.size([this.width, this.height]);
+        graph.graphElement.style({'width': graph.width + 'px', 'height': graph.height + 'px'});
+        svg.style({'width': graph.width + 'px', 'height': graph.height + 'px'});
+        force.size([graph.width, graph.height]);
     };
 
 
@@ -217,7 +251,7 @@ function Graph(id) {
         d3.selectAll(".node").classed("fixed", true);
     }
 
-    function update() {
+    this.update = function() {
         nodes = getChildren(root),
             links = d3.layout.tree().links(nodes);
 
@@ -230,9 +264,9 @@ function Graph(id) {
             .start();
 
         //bind doubleclick for routers to be collabsible
-        svg.selectAll(".router").on("dblclick", routerNodeDblClickListener);
+        svg.selectAll(".router").on("dblclick", graph.routerDblClick);
         //bind doubleclick for line breaks to disappear
-        svg.selectAll(".linebreak").on("dblclick", linebreakNodeDblClickListener);
+        svg.selectAll(".linebreak").on("dblclick", graph.linebreakDblClick);
     }
 
     /**
@@ -270,7 +304,6 @@ function Graph(id) {
                 target = findNodeById(l.target);
 
             links.push({"source": source, "target": target, "type": "internetworking", "topologyId": l.id});
-            //links.push({"source": target, "target": source, "type": "internetworking", "topologyId": generateId()});
         })
 
         //add overlay on internetworking links
@@ -326,17 +359,17 @@ function Graph(id) {
 
         link.filter(".interfaceOverlay").each(function (d) {
             d3.select(this)
-                .on("mouseover", mouseOverListener)
-                .on("mousemove", lineMouseMoveListener)
-                .on("mouseout", mouseOutListener)
-                .on("mousedown", lineMouseDownListener);
+                .on("mouseover", graph.mouseOver)
+                .on("mousemove", graph.subnetworkLineMouseMove)
+                .on("mouseout", graph.mouseOut)
+                .on("mousedown", graph.subnetworkLineMouseDown);
         });
 
         link.filter(".internetworkingOverlay").each(function (d) {
             d3.select(this)
-                .on("mouseover", mouseOverListener)
-                .on("mousemove", interNetworkingLineMouseMoveListener)
-                .on("mouseout", mouseOutListener);
+                .on("mouseover", graph.mouseOver)
+                .on("mousemove", graph.networkLineMouseMove)
+                .on("mouseout", graph.mouseOut);
         });
     }
 
@@ -377,7 +410,7 @@ function Graph(id) {
             .attr("id", function (d) {
                 return d.topologyId;
             })
-            .call(routerNodeDragListener);
+            .call(graph.drag);
 
         group.append("image")
             .attr("xlink:href", function (d) {
@@ -432,9 +465,9 @@ function Graph(id) {
         });
 
         group.filter(":not(.linebreak)")
-            .on("mouseover", mouseOverListener)
-            .on("mousemove", nodeMouseMoveListener)
-            .on("mouseout", mouseOutListener);
+            .on("mouseover", graph.mouseOver)
+            .on("mousemove", graph.nodeMouseMove)
+            .on("mouseout", graph.mouseOut);
     }
 
     function insertCircles() {
@@ -503,300 +536,34 @@ function Graph(id) {
             .attr("fill", cloudBackground.fill);
     }
 
-    var routerNodeDragListener =
-        d3.behavior.drag()
-            // .origin(function(d) { return d; })
-            .on("dragstart", function (d) {
-                d.fixed = true;
-                d3.select(this).classed("fixed", true);
-                d3.event.sourceEvent.stopPropagation();
-            })
-            .on("drag", function (d) {
-                //remove tooltip
-                mouseOutListener();
 
-                //compute coordinates of dragged node (NOTE: if some coordinates are wrong, it is probably because of simulate() function)
-                d.px += d3.event.dx / scale;
-                d.py += d3.event.dy / scale;
-
-                //compute coordinate of children if they are not hidden
-                if (d.physicalRole == "router") {
-                    setNodePosition(d, d3.event);
-                }
-
-                //compute coordinates of children if they are hidden
-                if (d.physicalRole == "cloud") {
-                    d._children.forEach(function (ch) {
-                        ch.px += d3.event.dx / scale;
-                        ch.py += d3.event.dy / scale;
-                        setNodePosition(ch, d3.event);
-                    });
-                }
-
-                /*            if(d.physicalRole != "router" && d.physicalRole != "cloud"){
-                 var diffX = Math.abs(d.parent.px - d.px);
-                 var diffY = Math.abs(d.parent.py - d.py);
-
-                 if(diffY > cloudBackground.height()/4 && cloudBackground.height() >= cloudBackground.minimalHeight())
-                 {
-                 var multiplier = (diffY - cloudBackground.height()/4) / ((cloudBackground.height()/4)/100);
-                 cloudBackground.multiplier = cloudBackground.multiplier + ((cloudBackground.multiplier/100) * multiplier);
-                 console.log(cloudBackground.multiplier);
-                 }
-                 if(diffY < cloudBackground.height()/4  &&  cloudBackground.height() > cloudBackground.minimalHeight() * cloudBackground.multiplier)
-                 {
-                 var multiplier = (diffY - cloudBackground.height()/4) / ((cloudBackground.height()/4)/100);
-                 cloudBackground.multiplier = cloudBackground.multiplier + ((cloudBackground.multiplier/100) * multiplier);
-                 console.log( cloudBackground.multiplier);
-                 }
-                 }*/
-                force.resume()
-            });
-
-
-    function setNodePosition(node, event) {
+    this.setNodePosition = function(node, event) {
         if (node.children)
             node.children.forEach(function (ch) {
-                setNodePosition(ch, event);
-                ch.px += event.dx / scale;
-                ch.py += event.dy / scale;
+                graph.setNodePosition(ch, event);
+                ch.px += event.dx / graph.scale;
+                ch.py += event.dy / graph.scale;
             })
     }
-
-    function zoomListener() {
-        if (d3.event) {
-            scale = d3.event.scale;
-            translate = d3.event.translate;
-            scaledNormalLength = defaultNormalLength / scale;
-        }
-
-        svg.selectAll(".router").each(function (d) {
-            if ((scale <= zoomShrinkCondition && d.physicalRole == "router") || (scale > zoomShrinkCondition && d.physicalRole == "cloud"))
-                if (d.locked == undefined || !d.locked) {
-                    routerNodeZoomListener(d);
-                }
-        });
-
-        //remove tooltip
-        mouseOutListener();
-
-        tick();
-    }
-
-    function routerNodeZoomListener(d) {
-        if (d.children) {
-            d.children.forEach(function (ch) {
-                ch.circled = false;
-            })
-            d._children = d.children;
-            d.children = null;
-            d.physicalRole = "cloud";
-        } else {
-            d.children = d._children;
-            d._children = null;
-            d.physicalRole = "router";
-        }
-
-        update();
-        /*To color new links immediately after creation, otherwise they would remain black until next timestamp or
-         to start animation again after update, otherwise links wouldn't move until next timestamp*/
-        setLinkProperties(0);
-
-        /*To show roles again after interface nodes have been displayed*/
-        setRoles();
-    };
-
-    function routerNodeDblClickListener(d) {
-        if (!d3.event.defaultPrevented) {
-            //we have 3 options. 1. lock unlock 2. lock and locked forever 3. lock and unlock only in origin state (applied now)
-            if (d.locked) {
-                if (scale <= zoomShrinkCondition && d.lockOrigin <= zoomShrinkCondition || scale > zoomShrinkCondition && d.lockOrigin > zoomShrinkCondition) {
-                    d.locked = false;
-                }
-                else {
-                    d.lockOrigin = scale;
-                }
-            }
-            else {
-                d.locked = true;
-                d.lockOrigin = scale;
-            }
-
-            routerNodeZoomListener(d);
-
-            //remove tooltip
-            mouseOutListener();
-        }
-    };
-
-    function mouseOverListener() {
-        tooltip
-            .transition()
-            .delay(500)
-            .duration(500)
-            .style("opacity", 1);
-    }
-
-    function mouseOutListener() {
-        tooltip
-            .transition()
-            .duration(0)
-            .style("opacity", 0);
-    }
-
-
-    function nodeMouseMoveListener(d) {
-        tooltip
-            .html(
-                "<b>Node:</b>" +
-                    "<br>Name: " + d.name +
-                    "<br>IPv4 address: " + d.address4 +
-                    "<br>Physical role: " + d.physicalRole +
-                    "<br>Logical role: " + d.logicalRole +
-                    "<br>Topology Id: " + d.topologyId +
-                    "<br>Id: " + d.id)
-            .style("left", (d3.event.layerX + 15) + "px")
-            .style("top", (d3.event.layerY + 15) + "px");
-    }
-
-    function lineMouseMoveListener(d) {
-        var interfaceIn,
-            interfaceOut;
-
-        links.forEach(function (l) {
-            if (l.topologyId == (d.target.topologyId + "In")) {
-                interfaceIn = l;
-            } else if (l.topologyId == (d.target.topologyId + "Out")) {
-                interfaceOut = l;
-            }
-        });
-
-        tooltip
-            .html(
-                "<b>" + interfaceIn.source.name + " to " + interfaceIn.target.name + ":</b>" +
-                    "<br>Number of Bits: " + interfaceIn.numberOfBits +
-                    "<br>Bandwidth: " + interfaceIn.bandwidth + " " + interfaceIn.bwUnit +
-                    "<br>Load: " + roundNumber(interfaceIn.load, 2) +
-                    "<br>Speed: " + roundNumber(interfaceIn.speed, 2) +
-                    "<br>" +
-                    "<br><b>" + interfaceIn.target.name + " to " + interfaceIn.source.name + ":</b>" +
-                    "<br>Number of Bits: " + interfaceOut.numberOfBits +
-                    "<br>Bandwidth: " + interfaceOut.bandwidth + " " + interfaceOut.bwUnit +
-                    "<br>Load: " + roundNumber(interfaceOut.load, 2) +
-                    "<br>Speed: " + roundNumber(interfaceOut.speed, 2))
-            .style("left", (d3.event.layerX + 15) + "px")
-            .style("top", (d3.event.layerY + 15) + "px");
-    }
-
-    function interNetworkingLineMouseMoveListener(d) {
-        var sourceToTargetLine,
-            targetToSourceLine;
-
-        links.forEach(function (l) {
-            if (l != d && l.source == d.source && l.target == d.target)
-                sourceToTargetLine = l;
-            else if (l.source == d.target && l.target == d.source)
-                targetToSourceLine = l;
-
-        })
-
-        tooltip
-            .html(
-                "<b>" + sourceToTargetLine.source.name + " to " + sourceToTargetLine.target.name + ":</b>" +
-                    "<br>Number of Bits: " + sourceToTargetLine.numberOfBits +
-                    "<br>Bandwidth: " + sourceToTargetLine.bandwidth + " " + sourceToTargetLine.bwUnit +
-                    "<br>Load: " + roundNumber(sourceToTargetLine.load, 2) +
-                    "<br>Speed: " + roundNumber(sourceToTargetLine.speed, 2) +
-                    "<br>" +
-                    "<br><b>" + targetToSourceLine.source.name + " to " + targetToSourceLine.target.name + ":</b>" +
-                    "<br>Number of Bits: " + targetToSourceLine.numberOfBits +
-                    "<br>Bandwidth: " + targetToSourceLine.bandwidth + " " + targetToSourceLine.bwUnit +
-                    "<br>Load: " + roundNumber(targetToSourceLine.load, 2) +
-                    "<br>Speed: " + roundNumber(targetToSourceLine.speed, 2))
-            .style("left", (d3.event.layerX + 15) + "px")
-            .style("top", (d3.event.layerY + 15) + "px");
-    }
-
-    function lineMouseDownListener(d) {
-        d3.event.stopPropagation();
-
-        var coordinates = d3.mouse(this);
-
-        //compute coordinates of new node, taking into account pane translate vector and zoom scale
-        var xx = (coordinates[0] - translate[0]) / scale;
-        var yy = (coordinates[1] - translate[1]) / scale;
-
-        //parent is set to node closest to the router
-        var n = {
-            "name": null,
-            "id": null,
-
-            "topologyId": generateId(),
-            "dataReferenceId": d.target.dataReferenceId,
-            "address4": null,
-            "physicalRole": "linebreak",
-            "parent": d.source,
-            "children": [d.target],
-            "size": {
-                "width": linebreakNodeSize,
-                "height": linebreakNodeSize
-            },
-            "x": xx,
-            "y": yy,
-            "fixed": true
-        };
-
-        //add node as child to his parent router
-        d.source.children.push(n);
-
-        //remove old leaf from old parent
-        d.source.children.splice(d.source.children.indexOf(d.target), 1);
-
-        //set parent of old leaf to this node
-        d.target.parent = n;
-
-        update();
-        //To color new links immediately after creation, otherwise they would remain black until next timestamp
-        setLinkProperties(0);
-
-        simulate(document.getElementById(n.topologyId), "mousedown", {pointerX: d3.event.x, pointerY: d3.event.y});
-    };
-
-    function linebreakNodeDblClickListener(d) {
-
-        //remove node from parental children list
-        d.parent.children.splice(d.parent.children.indexOf(d), 1);
-
-        //move all children from node to parent
-        //change parent of all children to their new parent
-        d.children.forEach(function (n) {
-            d.parent.children.push(n);
-            n.parent = d.parent;
-        });
-
-        update();
-        //To start animation again after update, otherwise links wouldn't move until next timestamp
-        setLinkProperties(0);
-    };
 
     /**
      * This function is called every time the graph needs to be refreshed. It computes new positions of nodes in the layout as well as
      * starting and ending points of all links(lines) between these nodes.
      */
-    function tick() {
+    this.tick = function() {
         //refreshes position of all nodes in graph
         node.attr("transform", function (d) {
             //this changes position of network clouds
             var nodeBackground = svg.selectAll("#background" + d.topologyId);
             nodeBackground.attr("transform", function () {
-                return "translate(" + (x(d.x) - (cloudBackground.width() * scale) / 2) + "," + (y(d.y) - (cloudBackground.height() * scale) / 2) + ")";
+                return "translate(" + (graph.x(d.x) - (cloudBackground.width() * graph.scale) / 2) + "," + (graph.y(d.y) - (cloudBackground.height() * graph.scale) / 2) + ")";
             });
             nodeBackground.select("g").attr("transform", function () {
-                return "matrix(" + (cloudBackground.scale() * scale) + ",0,0," + (cloudBackground.scale() * scale) + "," + (cloudBackground.translateX() * scale) + "," + (cloudBackground.translateY() * scale) + ")";
+                return "matrix(" + (cloudBackground.scale() * graph.scale) + ",0,0," + (cloudBackground.scale() * graph.scale) + "," + (cloudBackground.translateX() * graph.scale) + "," + (cloudBackground.translateY() * graph.scale) + ")";
             });
-            nodeBackground.select("path").attr("stroke-width", cloudBackground.strokeWidth() / scale);
+            nodeBackground.select("path").attr("stroke-width", cloudBackground.strokeWidth() / graph.scale);
 
-            return "translate(" + x(d.x) + "," + y(d.y) + ")";
+            return "translate(" + graph.x(d.x) + "," + graph.y(d.y) + ")";
         });
 
 
@@ -804,17 +571,17 @@ function Graph(id) {
         link
             .attr("x1", function (d) {
                 d.sourceNormalAttributes = getNormalAttributes(d.source, d.target, d.type, "out");
-                return getScaledNormalEndCoordinate(d.sourceNormalAttributes.start.x, d.sourceNormalAttributes.end.x, d.sourceNormalAttributes.ratio, x);
+                return getScaledNormalEndCoordinate(d.sourceNormalAttributes.start.x, d.sourceNormalAttributes.end.x, d.sourceNormalAttributes.ratio, graph.x);
             })
             .attr("y1", function (d) {
-                return  getScaledNormalEndCoordinate(d.sourceNormalAttributes.start.y, d.sourceNormalAttributes.end.y, d.sourceNormalAttributes.ratio, y);
+                return  getScaledNormalEndCoordinate(d.sourceNormalAttributes.start.y, d.sourceNormalAttributes.end.y, d.sourceNormalAttributes.ratio, graph.y);
             })
             .attr("x2", function (d) {
                 d.targetNormalAttributes = getNormalAttributes(d.target, d.source, d.type, "in");
-                return   getScaledNormalEndCoordinate(d.targetNormalAttributes.start.x, d.targetNormalAttributes.end.x, d.targetNormalAttributes.ratio, x);
+                return   getScaledNormalEndCoordinate(d.targetNormalAttributes.start.x, d.targetNormalAttributes.end.x, d.targetNormalAttributes.ratio, graph.x);
             })
             .attr("y2", function (d) {
-                return   getScaledNormalEndCoordinate(d.targetNormalAttributes.start.y, d.targetNormalAttributes.end.y, d.targetNormalAttributes.ratio, y);
+                return   getScaledNormalEndCoordinate(d.targetNormalAttributes.start.y, d.targetNormalAttributes.end.y, d.targetNormalAttributes.ratio, graph.y);
             });
     }
 
@@ -850,7 +617,7 @@ function Graph(id) {
 
         // pytagorova veta na vypocet dlzky ab
         var lineLengthSquared = Math.pow((target.x - source.x), 2) + Math.pow((target.y - source.y), 2),
-            scaledNormalLengthSquared = Math.pow(scaledNormalLength, 2),
+            scaledNormalLengthSquared = Math.pow(graph.scaledNormalLength, 2),
             ratio = scaledNormalLengthSquared / lineLengthSquared;
 
         return {"start": source, "end": {"x": normalEndX, "y": normalEndY}, "ratio": ratio};
@@ -954,8 +721,7 @@ function Graph(id) {
         d3.json(linkUsageConnectionString + "?timestamp=" + timestamp, function (json) {
             linkUsage = json;
 
-            setLinkProperties(500);
-            //getStats(timestamp);
+            graph.setLinkProperties(500);
         });
     }
 
@@ -968,11 +734,11 @@ function Graph(id) {
     this.updateRoles = function (timestamp) {
         d3.json(logicalRolesConnectionString + "?absoluteTimestamp=" + timestamp, function (json) {
             topologyRoles = json;
-            setRoles();
+            graph.setRoles();
         });
     }
 
-    function setRoles() {
+    this.setRoles = function() {
         if (topologyRoles) {
             var interfaces = svg.selectAll(".interface");
             interfaces.each(function (d) {
@@ -1025,7 +791,7 @@ function Graph(id) {
         }
     }
 
-    function setLinkProperties(transitionLength) {
+    this.setLinkProperties = function(transitionLength) {
         if (linkUsage)
             link.each(function (d) {
                 var l = d3.select(this);
@@ -1222,39 +988,6 @@ function Graph(id) {
         }
     }
 
-    function getStats(timestamp) {
-        d3.selectAll("#timestamp").text("Timestamp: " + timestamp);
-
-        var fastestLink = {speed: 0};
-        linkUsage.routerLinks.forEach(function (n) {
-            if (n.speed > fastestLink.speed)
-                fastestLink = n;
-        });
-
-        linkUsage.interfaceLinksIn.forEach(function (n) {
-            if (n.speed > fastestLink.speed) {
-                fastestLink = n;
-                fastestLink.type = "interfaceIn";
-            }
-        });
-
-        linkUsage.interfaceLinksOut.forEach(function (n) {
-            if (n.speed > fastestLink.speed) {
-                fastestLink = n;
-                fastestLink.type = "interfaceOut";
-            }
-        });
-
-        links.forEach(function (l) {
-            if (fastestLink.topologyId && l.target.topologyId == fastestLink.topologyId)
-                d3.selectAll("#speed").text("Fastest link: " + l.target.name + " " + fastestLink.type + " with speed " + fastestLink.speed);
-            else {
-                if (fastestLink.id == l.topologyId)
-                    d3.selectAll("#speed").text("Fastest link: " + l.source.name + " to " + l.target.name + " with speed " + fastestLink.speed);
-            }
-        });
-    }
-
     function createTestingNodesAndLinks() {
         var numberOfAttackers = 10;
         var numberOfRouters = 10;
@@ -1351,19 +1084,19 @@ function Graph(id) {
         return result;
     }
 
-    function roundNumber(number, digits) {
+    this.roundNumber = function(number, digits) {
         var multiple = Math.pow(10, digits);
         return  (Math.round(number * multiple) / multiple);
     }
 
-    function generateId() {
+    this.generateId = function() {
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
             var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
             return v.toString(16);
         });
     }
 
-    function simulate(element, eventName) {
+    this.simulate = function(element, eventName) {
         var options = extend(defaultOptions, arguments[2] || {});
         var oEvent, eventType = null;
 

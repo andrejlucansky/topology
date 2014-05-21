@@ -6,6 +6,13 @@ body{
     position: relative;
     overflow: hidden;
     background-color: rgb(230, 230, 230);
+
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 .link.interfaceOverlay {

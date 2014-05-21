@@ -1,148 +1,306 @@
 {
-    "nodes": [
-        {
-            "type": "computer",
-            "image": "../images/computer.png"
-        },
-        {
-            "type": "computer",
-            "image": "../images/computer.png"
-        },
-        {
-            "type": "computer",
-            "image": "../images/computer.png"
-        },
-        {
-            "type": "computer",
-            "image": "../images/computer.png"
-        },
-        {
-            "type": "router",
-            "image": "../images/router.png"
-        },
-        {
-            "type": "computer",
-            "image": "../images/computer.png"
-        },
-        {
-            "type": "computer",
-            "image": "../images/computer.png"
-        },
-        {
-            "type": "computer",
-            "image": "../images/computer.png"
-        },
-        {
-            "type": "computer",
-            "image": "../images/computer.png"
-        },
-        {
-            "type": "computer",
-            "image": "../images/computer.png"
-        },
-        {
-            "type": "computer",
-            "image": "../images/computer.png"
-        },
-        {
-            "type": "computer",
-            "image": "../images/computer.png"
-        },
-        {
-            "type": "computer",
-            "image": "../images/computer.png"
-        }
-    ],
     "links": [
         {
-            "source": 0,
-            "target": 1,
-            "type" : "upload"
+            "id": 1,
+            "srcId": 28,
+            "destId": 29,
+            "source": "r_28",
+            "target": "r_29"
         },
         {
-            "source": 1,
-            "target": 2,
-            "type" : "upload"
+            "id": 2,
+            "srcId": 28,
+            "destId": 30,
+            "source": "r_28",
+            "target": "r_30"
         },
         {
-            "source": 2,
-            "target": 0,
-            "type" : "upload"
+            "id": 3,
+            "srcId": 28,
+            "destId": 31,
+            "source": "r_28",
+            "target": "r_31"
         },
         {
-            "source": 1,
-            "target": 3,
-            "type" : "upload"
+            "id": 4,
+            "srcId": 28,
+            "destId": 32,
+            "source": "r_28",
+            "target": "r_32"
         },
         {
-            "source": 3,
-            "target": 2,
-            "type" : "upload"
+            "id": 5,
+            "srcId": 29,
+            "destId": 28,
+            "source": "r_29",
+            "target": "r_28"
         },
         {
-            "source": 3,
-            "target": 4,
-            "type" : "upload"
+            "id": 6,
+            "srcId": 30,
+            "destId": 28,
+            "source": "r_30",
+            "target": "r_28"
         },
         {
-            "source": 4,
-            "target": 5,
-            "type" : "upload"
+            "id": 7,
+            "srcId": 31,
+            "destId": 28,
+            "source": "r_31",
+            "target": "r_28"
         },
         {
-            "source": 5,
-            "target": 6,
-            "type" : "upload"
-        },
-        {
-            "source": 5,
-            "target": 7,
-            "type" : "upload"
-        },
-        {
-            "source": 6,
-            "target": 7,
-            "type" : "upload"
-        },
-        {
-            "source": 6,
-            "target": 8,
-            "type" : "upload"
-        },
-        {
-            "source": 7,
-            "target": 8,
-            "type" : "upload"
-        },
-        {
-            "source": 4,
-            "target": 9,
-            "type" : "upload"
-        },
-        {
-            "source": 9,
-            "target": 11,
-            "type" : "upload"
-        },
-        {
-            "source": 9,
-            "target": 10,
-            "type" : "upload"
-        },
-        {
-            "source": 10,
-            "target": 11,
-            "type" : "upload"
-        },
-        {
-            "source": 11,
-            "target": 12,
-            "type" : "upload"
-        },
-        {
-            "source": 10,
-            "target": 12,
-            "type" : "upload"
+            "id": 8,
+            "srcId": 32,
+            "destId": 28,
+            "source": "r_32",
+            "target": "r_28"
         }
-    ]
+    ], "children": [
+    {
+        "id": 28,
+        "name": "Network1",
+        "address4": "10.10.55.0/24",
+        "physicalRole": "router",
+        "topologyId": "r_28",
+        "children": [
+            {
+                "id": 1,
+                "name": "WWW-Server",
+                "address4": "10.10.55.3",
+                "physicalRole": "server",
+                "hostNodeId": 1,
+                "topologyId": "i_1"
+            },
+            {
+                "id": 2,
+                "name": "BotMaster",
+                "address4": "10.10.55.2",
+                "physicalRole": "desktop",
+                "hostNodeId": 2,
+                "topologyId": "i_2"
+            }
+        ]
+    },
+    {
+        "id": 29,
+        "name": "Network2",
+        "address4": "10.10.56.0/24",
+        "physicalRole": "router",
+        "topologyId": "r_29",
+        "children": [
+            {
+                "id": 3,
+                "name": "Internet2",
+                "address4": "10.10.56.2",
+                "physicalRole": "server",
+                "hostNodeId": 3,
+                "topologyId": "i_3"
+            },
+            {
+                "id": 4,
+                "name": "Bot2-2",
+                "address4": "10.10.56.3",
+                "physicalRole": "desktop",
+                "hostNodeId": 4,
+                "topologyId": "i_4"
+            },
+            {
+                "id": 5,
+                "name": "Bot2-3",
+                "address4": "10.10.56.4",
+                "physicalRole": "desktop",
+                "hostNodeId": 5,
+                "topologyId": "i_5"
+            },
+            {
+                "id": 6,
+                "name": "Bot2-4",
+                "address4": "10.10.56.5",
+                "physicalRole": "desktop",
+                "hostNodeId": 6,
+                "topologyId": "i_6"
+            },
+            {
+                "id": 7,
+                "name": "Bot2-5",
+                "address4": "10.10.56.6",
+                "physicalRole": "desktop",
+                "hostNodeId": 7,
+                "topologyId": "i_7"
+            },
+            {
+                "id": 8,
+                "name": "Bot2-6",
+                "address4": "10.10.56.7",
+                "physicalRole": "mobile",
+                "hostNodeId": 8,
+                "topologyId": "i_8"
+            }
+        ]
+    },
+    {
+        "id": 30,
+        "name": "Network3",
+        "address4": "10.10.57.0/24",
+        "physicalRole": "router",
+        "topologyId": "r_30",
+        "children": [
+            {
+                "id": 9,
+                "name": "Internet3",
+                "address4": "10.10.57.2",
+                "physicalRole": "server",
+                "hostNodeId": 9,
+                "topologyId": "i_9"
+            },
+            {
+                "id": 10,
+                "name": "Bot3-2",
+                "address4": "10.10.57.3",
+                "physicalRole": "desktop",
+                "hostNodeId": 10,
+                "topologyId": "i_10"
+            },
+            {
+                "id": 11,
+                "name": "Bot3-3",
+                "address4": "10.10.57.4",
+                "physicalRole": "desktop",
+                "hostNodeId": 11,
+                "topologyId": "i_11"
+            },
+            {
+                "id": 12,
+                "name": "Bot3-4",
+                "address4": "10.10.57.5",
+                "physicalRole": "desktop",
+                "hostNodeId": 12,
+                "topologyId": "i_12"
+            },
+            {
+                "id": 13,
+                "name": "Bot3-5",
+                "address4": "10.10.57.6",
+                "physicalRole": "desktop",
+                "hostNodeId": 13,
+                "topologyId": "i_13"
+            },
+            {
+                "id": 14,
+                "name": "Bot3-6",
+                "address4": "10.10.57.7",
+                "physicalRole": "mobile",
+                "hostNodeId": 14,
+                "topologyId": "i_14"
+            }
+        ]
+    },
+    {
+        "id": 31,
+        "name": "Network4",
+        "address4": "10.10.58.0/24",
+        "physicalRole": "router",
+        "topologyId": "r_31",
+        "children": [
+            {
+                "id": 15,
+                "name": "Internet4",
+                "address4": "10.10.58.2",
+                "physicalRole": "server",
+                "hostNodeId": 15,
+                "topologyId": "i_15"
+            },
+            {
+                "id": 16,
+                "name": "Bot4-2",
+                "address4": "10.10.58.3",
+                "physicalRole": "desktop",
+                "hostNodeId": 16,
+                "topologyId": "i_16"
+            },
+            {
+                "id": 17,
+                "name": "Bot4-3",
+                "address4": "10.10.58.4",
+                "physicalRole": "desktop",
+                "hostNodeId": 17,
+                "topologyId": "i_17"
+            },
+            {
+                "id": 18,
+                "name": "Bot4-4",
+                "address4": "10.10.58.5",
+                "physicalRole": "desktop",
+                "hostNodeId": 18,
+                "topologyId": "i_18"
+            },
+            {
+                "id": 19,
+                "name": "Bot4-5",
+                "address4": "10.10.58.6",
+                "physicalRole": "mobile",
+                "hostNodeId": 19,
+                "topologyId": "i_19"
+            }
+        ]
+    },
+    {
+        "id": 32,
+        "name": "Network5",
+        "address4": "10.10.59.0/24",
+        "physicalRole": "router",
+        "topologyId": "r_32",
+        "children": [
+            {
+                "id": 23,
+                "name": "Internet5",
+                "address4": "10.10.59.2",
+                "physicalRole": "server",
+                "hostNodeId": 21,
+                "topologyId": "i_23"
+            },
+            {
+                "id": 24,
+                "name": "Bot5-2",
+                "address4": "10.10.59.3",
+                "physicalRole": "desktop",
+                "hostNodeId": 23,
+                "topologyId": "i_24"
+            },
+            {
+                "id": 25,
+                "name": "Bot5-3",
+                "address4": "10.10.59.4",
+                "physicalRole": "desktop",
+                "hostNodeId": 24,
+                "topologyId": "i_25"
+            },
+            {
+                "id": 26,
+                "name": "Bot5-4",
+                "address4": "10.10.59.5",
+                "physicalRole": "desktop",
+                "hostNodeId": 25,
+                "topologyId": "i_26"
+            },
+            {
+                "id": 27,
+                "name": "Bot5-5",
+                "address4": "10.10.59.6",
+                "physicalRole": "desktop",
+                "hostNodeId": 26,
+                "topologyId": "i_27"
+            },
+            {
+                "id": 28,
+                "name": "Bot5-6",
+                "address4": "10.10.59.7",
+                "physicalRole": "mobile",
+                "hostNodeId": 27,
+                "topologyId": "i_28"
+            }
+        ]
+    }
+]
 }

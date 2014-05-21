@@ -1,0 +1,127 @@
+{"interfaceRoles": [
+    {
+        "id": 1,
+        "role": "victim",
+        "topologyId": "i_1"
+    },
+    {
+        "id": 2,
+        "role": "master",
+        "topologyId": "i_2"
+    },
+    {
+        "id": 3,
+        "role": null,
+        "topologyId": "i_3"
+    },
+    {
+        "id": 4,
+        "role": "bot",
+        "topologyId": "i_4"
+    },
+    {
+        "id": 5,
+        "role": "bot",
+        "topologyId": "i_5"
+    },
+    {
+        "id": 6,
+        "role": "bot",
+        "topologyId": "i_6"
+    },
+    {
+        "id": 7,
+        "role": "bot",
+        "topologyId": "i_7"
+    },
+    {
+        "id": 8,
+        "role": "bot",
+        "topologyId": "i_8"
+    },
+    {
+        "id": 9,
+        "role": null,
+        "topologyId": "i_9"
+    },
+    {
+        "id": 10,
+        "role": "bot",
+        "topologyId": "i_10"
+    },
+    {
+        "id": 11,
+        "role": "bot",
+        "topologyId": "i_11"
+    },
+    {
+        "id": 12,
+        "role": "bot",
+        "topologyId": "i_12"
+    },
+    {
+        "id": 13,
+        "role": "bot",
+        "topologyId": "i_13"
+    },
+    {
+        "id": 14,
+        "role": "bot",
+        "topologyId": "i_14"
+    },
+    {
+        "id": 15,
+        "role": null,
+        "topologyId": "i_15"
+    },
+    {
+        "id": 16,
+        "role": "bot",
+        "topologyId": "i_16"
+    },
+    {
+        "id": 17,
+        "role": "bot",
+        "topologyId": "i_17"
+    },
+    {
+        "id": 18,
+        "role": "bot",
+        "topologyId": "i_18"
+    },
+    {
+        "id": 19,
+        "role": "bot",
+        "topologyId": "i_19"
+    },
+    {
+        "id": 23,
+        "role": null,
+        "topologyId": "i_23"
+    },
+    {
+        "id": 24,
+        "role": "bot",
+        "topologyId": "i_24"
+    },
+    {
+        "id": 25,
+        "role": "bot",
+        "topologyId": "i_25"
+    },
+    {
+        "id": 26,
+        "role": "bot",
+        "topologyId": "i_26"
+    },
+    {
+        "id": 27,
+        "role": "bot",
+        "topologyId": "i_27"
+    },
+    {
+        "id": 28,
+        "role": "bot",
+        "topologyId": "i_28"
+    }
+]}
