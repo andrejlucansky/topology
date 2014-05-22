@@ -28,55 +28,25 @@
  * Graph events are only mock objects and should be bound in init.js file
  */
 function Graph(id) {
-    /*
-     * This section contains all necessary constants required to set up a graph. Every setting
-     * of the graph should be available here.
+    /**
+     * =================================================================================================================
+     * Public and private attributes
+     * =================================================================================================================
      */
-    this.imagePath;
-    this.width;
-    this.height;
 
+    //these attributes should have getters and setters instead of being public
+    this.imagePath;
     this.linebreakNodeSize = 10;
     this.scale = 1;
     this.translate = [0, 0];
     this.defaultNormalLength = 2;
     this.scaledNormalLength = this.defaultNormalLength;
     this.zoomShrinkCondition = 1;
-
     this.x;
     this.y;
-
-    this.graphElement = d3.select("#" + id);
-    this.tooltip = this.graphElement.append("div").attr("class", "tooltip").style("opacity", 0);
-
-    //mock events
-    this.subnetworkLineMouseDown = function(){};
-    this.zoom = d3.behavior.zoom();
-    this.drag = d3.behavior.drag();
-    this.nodeZoom = function(){};
-    this.routerDblClick = function(){};
-    this.mouseOver = function(){};
-    this.mouseOut = function(){};
-    this.nodeMouseMove = function(){};
-    this.subnetworkLineMouseMove = function(){};
-    this.networkLineMouseMove = function(){};
-    this.linebreakDblClick = function(){};
-
-    //getters for private attributes
-    this.getLinks = function(){
-        return links;
-    }
-
-    this.getNodes = function(){
-        return nodes;
-    }
-
-    this.getForce = function(){
-        return force;
-    }
+    this.tooltip = d3.select("#" + id).append("div").attr("class", "tooltip").style("opacity", 0);
 
     var nodeSize = 48,
-
         root,
         timestamps,
         linkUsage,
@@ -84,23 +54,25 @@ function Graph(id) {
         simulationInterval,
         simulationIntervalLength = 5000,
         defaultSpeed = 1105,
-        performanceTest = false,
         graph = this,
-        imageFormat = ".svg",
-        svg = this.graphElement.append("svg"),
+        graphElement = d3.select("#" + id),
+        svg = graphElement.append("svg"),
         link = svg.selectAll(".link"),
         node = svg.selectAll(".node"),
         router = svg.selectAll(".router"),
+        imageFormat = ".svg",
         nodes,
         links,
         force,
-
+        width,
+        height,
         connectionString,
         topologyConnectionString,
         linkUsageConnectionString,
         logicalRolesConnectionString,
         timestampsConnectionString;
 
+    //Inline definition of sub-network bordering
     var cloudBackground = {
         "stroke": "#3D3D3F",
         "strokeWidth": function () {
@@ -129,6 +101,7 @@ function Graph(id) {
         "multiplier": 0.8
     };
 
+    //Link color scale definition
     var colors = {
         "red": {
             "start": 255,
@@ -145,22 +118,84 @@ function Graph(id) {
         "intervals": 5
     };
 
-    this.preInit = function(){
-        graph.width = parseInt(d3.select("#" + id).style("width"));
-        graph.height = parseInt(d3.select("#" + id).style("height"));
+    /**
+     * =================================================================================================================
+     * Mock events
+     * =================================================================================================================
+     */
+    this.subnetworkLineMouseDown = function () {
+    };
+    this.routerDblClick = function () {
+    };
+    this.linebreakDblClick = function () {
+    };
+    this.mouseOver = function () {
+    };
+    this.mouseOut = function () {
+    };
+    this.nodeMouseMove = function () {
+    };
+    this.subnetworkLineMouseMove = function () {
+    };
+    this.networkLineMouseMove = function () {
+    };
+    this.nodeZoom = function () {
+    };
+    this.end = function () {
+    };
+    this.zoom = d3.behavior.zoom();
+    this.drag = d3.behavior.drag();
+
+    /**
+     * =================================================================================================================
+     * Getters and setters
+     * =================================================================================================================
+     */
+    this.getLinks = function () {
+        return links;
+    }
+
+    this.getNodes = function () {
+        return nodes;
+    }
+
+    this.getForce = function () {
+        return force;
+    }
+    this.getElement = function(){
+        return graphElement;
+    }
+
+    this.setWidth = function (value) {
+        width = value;
+    }
+
+    this.setHeight = function (value) {
+        height = value;
+    }
+
+    /**
+     * =================================================================================================================
+     * Initiation
+     * =================================================================================================================
+     */
+    this.preInit = function () {
+        width = parseInt(d3.select("#" + id).style("width"));
+        height = parseInt(d3.select("#" + id).style("height"));
+
+        svg.style({'width': width + 'px', 'height': height + 'px', 'overflow': 'hidden'});
 
         graph.x = d3.scale.linear()
-            .domain([0, graph.width])
-            .range([0, graph.width]);
+            .domain([0, width])
+            .range([0, width]);
 
         graph.y = d3.scale.linear()
-            .domain([0, graph.height])
-            .range([0, graph.height]);
+            .domain([0, height])
+            .range([0, height]);
 
         force = d3.layout.force()
-            .size([graph.width, graph.height])
+            .size([width, height])
             .on("tick", graph.tick)
-            .on("end", end)
             .linkDistance(function (d) {
                 if (d.type == "internetworking" || d.type == "internetworkingOverlay")
                     return 500;
@@ -172,8 +207,8 @@ function Graph(id) {
     }
 
     this.init = function (event) {
-        svg.style({'width': graph.width + 'px', 'height': graph.height + 'px', 'overflow': 'hidden'});
         svg.call(graph.zoom).on("dblclick.zoom", null);
+        force.on("end", graph.end);
 
         connectionString = event.api,
         topologyConnectionString = connectionString + "/network/topology",
@@ -186,72 +221,20 @@ function Graph(id) {
         });
 
         d3.json(topologyConnectionString, function (json) {
-            if (performanceTest)
-                root = createTestingNodesAndLinks();
-            else
-                root = json;
-
+            root = json;
             graph.update();
             graph.zoom.event(svg);
-
-            if (event.to == undefined) {
-                console.log("Testing simulation started!");
-                //startSimulation();
-            }
         });
-
-        //on pressing Esc, stop simulation.
-        window.onkeydown = function (event) {
-            if (event.keyCode == 27)
-                stopSimulation();
-        };
     };
 
-    this.resize = function () {
-        graph.graphElement.style({'width': graph.width + 'px', 'height': graph.height + 'px'});
-        svg.style({'width': graph.width + 'px', 'height': graph.height + 'px'});
-        force.size([graph.width, graph.height]);
-    };
+    /**
+     * =================================================================================================================
+     * Graph update
+     * =================================================================================================================
+     */
 
-
-    function getChildren(root) {
-        var nodes = [], i = 0;
-
-        function recurse(node, parent) {
-            if (node.children) node.children.forEach(function (ch) {
-                recurse(ch, node)
-            });
-            //if it doesn't exist already, because we would be rewriting our own data otherwise
-            if (!node.size) node.size = {"width": nodeSize, "height": nodeSize};
-            if (!node.dataReferenceId) node.dataReferenceId = node.topologyId;
-            node.parent = parent;
-
-            nodes.push(node);
-        }
-
-        recurse(root, null);
-
-        //remove root node
-        nodes.splice(nodes.indexOf(root), 1);
-        return nodes;
-    }
-
-//this function could return node index in nodes array, but it easier to return whole node reference
-    function findNodeById(topologyId) {
-        for (var i = 0; i < nodes.length; i++) {
-            if (nodes[i].topologyId == topologyId)
-                return nodes[i];
-        }
-    }
-
-    function end() {
-        for (var i = 0; i < nodes.length; i++) {
-            nodes[i].fixed = true;
-        }
-        d3.selectAll(".node").classed("fixed", true);
-    }
-
-    this.update = function() {
+    //call when graph data change to update the topology accordingly
+    this.update = function () {
         nodes = getChildren(root),
             links = d3.layout.tree().links(nodes);
 
@@ -268,6 +251,12 @@ function Graph(id) {
         //bind doubleclick for line breaks to disappear
         svg.selectAll(".linebreak").on("dblclick", graph.linebreakDblClick);
     }
+
+    /**
+     * =================================================================================================================
+     * Nodes and links drawing
+     * =================================================================================================================
+     */
 
     /**
      * Why link topologyIDs are so weird? Because if they were generated with every update, data wouldn't match associated lines after the update,
@@ -470,6 +459,29 @@ function Graph(id) {
             .on("mouseout", graph.mouseOut);
     }
 
+    /**
+     * =================================================================================================================
+     * Sub-networks bordering and interface circling
+     * =================================================================================================================
+     */
+
+    function insertCloudBackground(d) {
+        svg.insert("g", ":first-child")
+            .attr("class", function () {
+                return "cloud_bg ";
+            })
+            .attr("id", function () {
+                return "background" + d.topologyId;
+            })
+            .append("g")
+            .attr("transform", "matrix(" + cloudBackground.scale() + ",0,0," + cloudBackground.scale() + "," + cloudBackground.translateX() + "," + cloudBackground.translateY() + ")")
+            .append("path")
+            .attr("d", cloudBackground.path)
+            .attr("stroke", cloudBackground.stroke)
+            .attr("stroke-width", cloudBackground.strokeWidth())
+            .attr("fill", cloudBackground.fill);
+    }
+
     function insertCircles() {
         var hostNodes = [
             []
@@ -519,38 +531,17 @@ function Graph(id) {
         })
     }
 
-    function insertCloudBackground(d) {
-        svg.insert("g", ":first-child")
-            .attr("class", function () {
-                return "cloud_bg ";
-            })
-            .attr("id", function () {
-                return "background" + d.topologyId;
-            })
-            .append("g")
-            .attr("transform", "matrix(" + cloudBackground.scale() + ",0,0," + cloudBackground.scale() + "," + cloudBackground.translateX() + "," + cloudBackground.translateY() + ")")
-            .append("path")
-            .attr("d", cloudBackground.path)
-            .attr("stroke", cloudBackground.stroke)
-            .attr("stroke-width", cloudBackground.strokeWidth())
-            .attr("fill", cloudBackground.fill);
-    }
-
-
-    this.setNodePosition = function(node, event) {
-        if (node.children)
-            node.children.forEach(function (ch) {
-                graph.setNodePosition(ch, event);
-                ch.px += event.dx / graph.scale;
-                ch.py += event.dy / graph.scale;
-            })
-    }
+    /**
+     * =================================================================================================================
+     * Node and link positioning
+     * =================================================================================================================
+     */
 
     /**
      * This function is called every time the graph needs to be refreshed. It computes new positions of nodes in the layout as well as
      * starting and ending points of all links(lines) between these nodes.
      */
-    this.tick = function() {
+    this.tick = function () {
         //refreshes position of all nodes in graph
         node.attr("transform", function (d) {
             //this changes position of network clouds
@@ -692,38 +683,11 @@ function Graph(id) {
         return result;
     }
 
-    function startSimulation() {
-        var timestampIndex = -1;
-
-        simulationInterval = window.setInterval(function () {
-            timestampIndex++;
-            if (timestampIndex >= timestamps.length - 1)
-                window.clearInterval(simulationInterval);
-
-            graph.updateLinks(timestamps[timestampIndex]);
-            graph.updateRoles(timestamps[timestampIndex]);
-        }, simulationIntervalLength);
-    }
-
-    function stopSimulation() {
-        links.forEach(function (d) {
-            window.clearInterval(d.interval);
-            window.clearInterval(simulationInterval);
-        })
-    }
-
     /**
-     * This function is used to update speed and color of links connecting nodes in the graph.
-     * @param timestamp Timestamp is representing time interval in simulation. In this function, timestamp is used to
-     * define interval, for which speed and color of links should be shown to the user.
+     * =================================================================================================================
+     * Logical roles
+     * =================================================================================================================
      */
-    this.updateLinks = function (timestamp) {
-        d3.json(linkUsageConnectionString + "?timestamp=" + timestamp, function (json) {
-            linkUsage = json;
-
-            graph.setLinkProperties(500);
-        });
-    }
 
     /**
      * This function is used to update images appended to interfaces in the graph. Theese images represent logical roles of
@@ -738,7 +702,7 @@ function Graph(id) {
         });
     }
 
-    this.setRoles = function() {
+    this.setRoles = function () {
         if (topologyRoles) {
             var interfaces = svg.selectAll(".interface");
             interfaces.each(function (d) {
@@ -791,7 +755,27 @@ function Graph(id) {
         }
     }
 
-    this.setLinkProperties = function(transitionLength) {
+
+    /**
+     * =================================================================================================================
+     * Animation and coloring
+     * =================================================================================================================
+     */
+
+    /**
+     * This function is used to update speed and color of links connecting nodes in the graph.
+     * @param timestamp Timestamp is representing time interval in simulation. In this function, timestamp is used to
+     * define interval, for which speed and color of links should be shown to the user.
+     */
+    this.updateLinks = function (timestamp) {
+        d3.json(linkUsageConnectionString + "?timestamp=" + timestamp, function (json) {
+            linkUsage = json;
+
+            graph.setLinkProperties(500);
+        });
+    }
+
+    this.setLinkProperties = function (transitionLength) {
         if (linkUsage)
             link.each(function (d) {
                 var l = d3.select(this);
@@ -817,12 +801,6 @@ function Graph(id) {
                         d.bandwidth = json.routerLinks[i].bandwidth;
                         d.bwUnit = json.routerLinks[i].bwUnit;
                     }
-                    /*                else
-                     {
-                     d.load = 1;
-                     d.previousSpeed = 0;
-                     d.speed = 1;
-                     }*/
                 }
                 break;
             }
@@ -838,12 +816,6 @@ function Graph(id) {
                         d.bandwidth = json.interfaceLinksOut[i].bandwidth;
                         d.bwUnit = json.interfaceLinksOut[i].bwUnit;
                     }
-                    /*                else
-                     {
-                     d.load = 1;
-                     d.previousSpeed = 0;
-                     d.speed = 1;
-                     }*/
                 }
                 break;
             }
@@ -859,12 +831,6 @@ function Graph(id) {
                         d.bandwidth = json.interfaceLinksIn[i].bandwidth;
                         d.bwUnit = json.interfaceLinksIn[i].bwUnit;
                     }
-                    /*                else
-                     {
-                     d.load = 1;
-                     d.previousSpeed = 0;
-                     d.speed = 1;
-                     }*/
                 }
                 break;
             }
@@ -895,7 +861,7 @@ function Graph(id) {
         if (d.previousSpeed != d.speed) {
             var time = (defaultSpeed - (d.animation.speed * d.speed));
 
-            //toto po update nema zmysel, lebo je to vynulovane, ale vola sa to pri novom timestampe
+            //clearing of interval and timeout makes sense when new timestamp arrives from Time Manager
             clearInterval(d.interval);
             clearTimeout(d.timeout);
             d.stopwatch.stop();
@@ -918,6 +884,80 @@ function Graph(id) {
             }, Math.max(time - d.stopwatch.measuredTime, 0));
         }
     }
+
+    /**
+     * =================================================================================================================
+     * Animation and coloring simulation methods
+     * =================================================================================================================
+     */
+
+    /**
+     * These methods are useful for localhost testing of animation and coloring.
+     * It should be used when the visualisation is not deployed on the portal, so it cant be used in combination with
+     * KYPO Time Manager portlet to control changes of link usage data.
+     */
+    this.startSimulation = function() {
+        var timestampIndex = -1;
+
+        simulationInterval = window.setInterval(function () {
+            timestampIndex++;
+            if (timestampIndex >= timestamps.length - 1)
+                window.clearInterval(simulationInterval);
+
+            graph.updateLinks(timestamps[timestampIndex]);
+            graph.updateRoles(timestamps[timestampIndex]);
+        }, simulationIntervalLength);
+    }
+
+    this.stopSimulation = function() {
+        links.forEach(function (d) {
+            window.clearInterval(d.interval);
+            window.clearInterval(simulationInterval);
+        })
+    }
+
+    /**
+     * =================================================================================================================
+     * Drawing helper methods
+     * =================================================================================================================
+     */
+
+    // used for extracting node data from topology JSONs
+    function getChildren(root) {
+        var nodes = [], i = 0;
+
+        function recurse(node, parent) {
+            if (node.children) node.children.forEach(function (ch) {
+                recurse(ch, node)
+            });
+            //if it doesn't exist already, because we would be rewriting our own data otherwise
+            if (!node.size) node.size = {"width": nodeSize, "height": nodeSize};
+            if (!node.dataReferenceId) node.dataReferenceId = node.topologyId;
+            node.parent = parent;
+
+            nodes.push(node);
+        }
+
+        recurse(root, null);
+
+        //remove root node
+        nodes.splice(nodes.indexOf(root), 1);
+        return nodes;
+    }
+
+    //this function could return node index in nodes array, but it easier to return whole node reference
+    function findNodeById(topologyId) {
+        for (var i = 0; i < nodes.length; i++) {
+            if (nodes[i].topologyId == topologyId)
+                return nodes[i];
+        }
+    }
+
+    /**
+     * =================================================================================================================
+     * Internal classes
+     * =================================================================================================================
+     */
 
     function Stopwatch() {
         this.startTime = undefined;
@@ -970,7 +1010,6 @@ function Graph(id) {
         this.blue = new ColorScale(colors.blue, colors.intervals);
 
         this.paint = function (intervalIndex) {
-            //console.log("rgb("+ this.red.color(intervalIndex) +"," + this.green.color(intervalIndex) + "," + this.blue.color(intervalIndex) +")");
             return "rgb(" + this.red.color(intervalIndex) + "," + this.green.color(intervalIndex) + "," + this.blue.color(intervalIndex) + ")";
         }
 
@@ -988,115 +1027,49 @@ function Graph(id) {
         }
     }
 
-    function createTestingNodesAndLinks() {
-        var numberOfAttackers = 10;
-        var numberOfRouters = 10;
-        var numberOfSheeps = 1;
 
-        var result = {};
-        result.children = [];
-        result.links = [];
+    /**
+     * =================================================================================================================
+     * Utility methods
+     * =================================================================================================================
+     */
 
-        //create attacker networks
-        var index = 0;
-        for (var i = 0; i < numberOfRouters; i++) {
-            var router = {};
-            router.id = i;
-            router.topologyId = "r_" + i;
-            router.name = "Attacker network " + i;
-            router.address4 = "unknown";
-            router.physicalRole = "router";
-            router.children = [];
-
-            for (var j = 0; j < numberOfAttackers; j++) {
-                var node = {};
-                node.id = index;
-                node.topologyId = "i_" + index;
-                node.hostNodeId = j;
-                node.name = "attacker " + j;
-                node.address4 = "unknown";
-                node.physicalRole = "computer";
-
-                index++;
-                router.children.push(node);
-            }
-            result.children.push(router);
-        }
-
-        //create links
-        var index = 0;
-        for (var l = 0; l < numberOfRouters; l++) {
-            for (var k = 0; k < numberOfRouters; k++) {
-                if (l != k) {
-                    var link = {};
-
-                    link.id = index;
-                    link.source = "r_" + l;
-                    link.target = "r_" + k;
-                    index++;
-
-                    result.links.push(link);
-                }
-            }
-        }
-
-        return result;
-    }
-
-    function createTestingNodesAndLinks2() {
-        var numberOfNOdes = 333;
-
-        var result = {};
-        result.children = [];
-        result.links = [];
-
-        //create attacker networks
-        var index = 0;
-        for (var i = 0; i < numberOfNOdes; i++) {
-            var router = {};
-            router.id = i;
-            router.topologyId = "r_" + i;
-            router.name = "Attacker network " + i;
-            router.address4 = "unknown";
-            router.physicalRole = "router";
-            router.children = [];
-
-            result.children.push(router);
-        }
-
-        //create links
-        var index = 0;
-        for (var l = 0; l < numberOfNOdes; l++) {
-            for (var k = 0; k < numberOfNOdes; k++) {
-                if (l == k - 1) {
-                    var link = {};
-
-                    link.id = index;
-                    link.source = "r_" + l;
-                    link.target = "r_" + k;
-                    index++;
-
-                    result.links.push(link);
-                }
-            }
-        }
-
-        return result;
-    }
-
-    this.roundNumber = function(number, digits) {
+    this.roundNumber = function (number, digits) {
         var multiple = Math.pow(10, digits);
         return  (Math.round(number * multiple) / multiple);
     }
 
-    this.generateId = function() {
+    this.generateId = function () {
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
             var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
             return v.toString(16);
         });
     }
 
-    this.simulate = function(element, eventName) {
+    this.simulate = function (element, eventName) {
+        function extend(destination, source) {
+            for (var property in source)
+                destination[property] = source[property];
+            return destination;
+        }
+
+        var eventMatchers = {
+            'HTMLEvents': /^(?:load|unload|abort|error|select|change|submit|reset|focus|blur|resize|scroll)$/,
+            'MouseEvents': /^(?:click|dblclick|mouse(?:down|up|over|move|out))$/
+        };
+
+        var defaultOptions = {
+            pointerX: 0,
+            pointerY: 0,
+            button: 0,
+            ctrlKey: false,
+            altKey: false,
+            shiftKey: false,
+            metaKey: false,
+            bubbles: true,
+            cancelable: true
+        };
+
         var options = extend(defaultOptions, arguments[2] || {});
         var oEvent, eventType = null;
 
@@ -1131,28 +1104,4 @@ function Graph(id) {
         }
         return element;
     }
-
-    function extend(destination, source) {
-        for (var property in source)
-            destination[property] = source[property];
-        return destination;
-    }
-
-    var eventMatchers = {
-        'HTMLEvents': /^(?:load|unload|abort|error|select|change|submit|reset|focus|blur|resize|scroll)$/,
-        'MouseEvents': /^(?:click|dblclick|mouse(?:down|up|over|move|out))$/
-    };
-
-    var defaultOptions = {
-        pointerX: 0,
-        pointerY: 0,
-        button: 0,
-        ctrlKey: false,
-        altKey: false,
-        shiftKey: false,
-        metaKey: false,
-        bubbles: true,
-        cancelable: true
-    };
-
 }
