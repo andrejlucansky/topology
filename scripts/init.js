@@ -180,6 +180,7 @@
             //To color new links immediately after creation, otherwise they would remain black until next timestamp
             graph.setLinkProperties(0);
 
+            //this should enable immediate dragging after creation of linebreak. Unfortunately, it does not work in FF and IE, only Chrome.
             graph.simulate(document.getElementById(n.topologyId), "mousedown", {pointerX: d3.event.x, pointerY: d3.event.y});
         };
     }
